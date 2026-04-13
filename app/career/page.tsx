@@ -5,7 +5,7 @@ import TeamPart from "@/components/career/teamPart";
 import PhotoGrid from "@/components/career/photogrid";
 import Footer from "@/components/footer";
 
-export default function Home() {
+export default function CareerPage() {
   return (
     <>
       <Navbar/>
@@ -16,4 +16,4 @@ export default function Home() {
       <Footer/>
     </>
   );
-}
+}   
