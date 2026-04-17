@@ -1,6 +1,8 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { useState, useRef } from "react";
+import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
 
 type FormData = {
     firstName: string;
@@ -25,45 +27,129 @@ const ErrorText = ({ error }: { error?: any }) => {
     return <p className="text-red-500 text-xs mt-1">{error.message}</p>;
 };
 
-const allowOnlyLetters = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-        !/^[a-zA-Z\s]$/.test(e.key) &&
-        !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-    ) {
-        e.preventDefault();
-    }
-};
+// ── Profile Photo Upload ──────────────────────────────────────────────────────
 
-const allowOnlyNumbers = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-        !/^\d$/.test(e.key) &&
-        !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-    ) {
-        e.preventDefault();
-    }
-};
+function ProfilePhotoUpload({
+    photo,
+    onPhotoChange,
+    error,
+}: {
+    photo: File | null;
+    onPhotoChange: (f: File | null) => void;
+    error?: string;
+}) {
+    const inputRef = useRef<HTMLInputElement>(null);
+    const previewUrl = photo ? URL.createObjectURL(photo) : null;
+
+    const handleFile = (f: File) => {
+        if (!["image/jpeg", "image/png", "image/jpg"].includes(f.type)) {
+            alert("Only JPG or PNG files are allowed.");
+            return;
+        }
+        if (f.size > 2 * 1024 * 1024) {
+            alert("File size must be under 2MB.");
+            return;
+        }
+        onPhotoChange(f);
+    };
+
+    return (
+        <div className="flex flex-col gap-1">
+            <label className="text-sm text-gray-700">
+                Profile Photo <span className="text-red-500">*</span>
+            </label>
+
+            <div className="flex items-center gap-5">
+                {/* Avatar preview */}
+                <div
+                    onClick={() => inputRef.current?.click()}
+                    className={`w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-all shrink-0
+                        ${error ? "border-red-400 bg-red-50" : "border-gray-300 bg-gray-50 hover:border-teal-400 hover:bg-teal-50"}`}
+                >
+                    {previewUrl ? (
+                        <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                        </svg>
+                    )}
+                </div>
+
+                {/* Upload actions */}
+                <div className="flex flex-col gap-2">
+                    <button
+                        type="button"
+                        onClick={() => inputRef.current?.click()}
+                        className="text-xs font-semibold text-white bg-[#006256] hover:bg-[#004d45] px-4 py-2 rounded-lg transition-colors w-fit"
+                    >
+                        {photo ? "Change Photo" : "Upload Photo"}
+                    </button>
+                    {photo && (
+                        <button
+                            type="button"
+                            onClick={() => onPhotoChange(null)}
+                            className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors w-fit"
+                        >
+                            Remove
+                        </button>
+                    )}
+                    <p className="text-xs text-gray-400">JPG or PNG, max 2MB</p>
+                </div>
+            </div>
+
+            {error && (
+                <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                    <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {error}
+                </p>
+            )}
+
+            <input
+                ref={inputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFile(f);
+                    e.target.value = "";
+                }}
+            />
+        </div>
+    );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export default function BasicDetails({ onNext, defaultValues }: Props) {
+    const [photo, setPhoto] = useState<File | null>(null);
+    const [photoError, setPhotoError] = useState("");
+
     const {
         register,
         handleSubmit,
         formState: { errors },
     } = useForm<FormData>({
-        defaultValues: defaultValues ?? {},   // ✅ pre-fills all fields including email
+        defaultValues: defaultValues ?? {},
     });
 
     const onSubmit = (data: FormData) => {
-        onNext(data);
+        if (!photo) {
+            setPhotoError("Profile photo is required.");
+            return;
+        }
+        setPhotoError("");
+        onNext({ ...data, profilePhoto: photo });
     };
 
     const inputClass = (hasError: boolean) =>
         `border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 w-full
-    ${hasError
+        ${hasError
             ? "border-red-400 focus:ring-red-300"
             : "border-gray-300 focus:ring-teal-400"
         }`;
-
-
 
     return (
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -73,6 +159,16 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
             </p>
 
             <div className="flex flex-col gap-5">
+
+                {/* Profile Photo */}
+                <ProfilePhotoUpload
+                    photo={photo}
+                    onPhotoChange={(f) => { setPhoto(f); if (f) setPhotoError(""); }}
+                    error={photoError}
+
+                />
+
+                <div className="h-px bg-gray-100" />
 
                 {/* Row 1: First Name + Last Name */}
                 <div className="flex gap-4">
@@ -85,11 +181,41 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
                             placeholder="Raj"
                             {...register("firstName", {
                                 required: "First name is required",
-                                minLength: { value: 2, message: "Minimum 2 characters" },
+
+                                minLength: {
+                                    value: 2,
+                                    message: "Must be at least 2 characters",
+                                },
+
+                                maxLength: {
+                                    value: 30,
+                                    message: "Must be under 30 characters",
+                                },
+
+                                pattern: {
+                                    value: /^[A-Za-z]+$/,
+                                    message: "Only letters allowed",
+                                },
+
+                                validate: {
+                                    noSpaces: (value: string) =>
+                                        value.trim() === value || "No leading or trailing spaces",
+
+                                    onlyLetters: (value: string) =>
+                                        /^[A-Za-z]+$/.test(value) || "Only letters allowed",
+                                },
+
+                                setValueAs: (value: string) =>
+                                    (value || "")
+                                        .trim()
+                                        .replace(/\b\w/g, (char: string) => char.toUpperCase()),
+
                             })}
+                            maxLength={30}
                             onKeyDown={allowOnlyLetters}
                             className={inputClass(!!errors.firstName)}
                         />
+                        
                         <ErrorText error={errors.firstName} />
                     </div>
 
@@ -102,16 +228,45 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
                             placeholder="Kapoor"
                             {...register("lastName", {
                                 required: "Last name is required",
+
+                                minLength: {
+                                    value: 2,
+                                    message: "Must be at least 2 characters",
+                                },
+
+                                maxLength: {
+                                    value: 30,
+                                    message: "Must be under 30 characters",
+                                },
+
+                                pattern: {
+                                    value: /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/,
+                                    message: "Only letters, spaces, hyphens, and apostrophes allowed",
+                                },
+
+                                validate: (value) => {
+                                    if (value.trim() !== value) {
+                                        return "No leading or trailing spaces";
+                                    }
+                                    return true;
+                                },
+
+                                setValueAs: (value: string) =>
+                                    (value || "")
+                                        .trim()
+                                        .toLowerCase()
+                                        .replace(/\b\w/g, (char: string) => char.toUpperCase()),
                             })}
+                            maxLength={30}
                             onKeyDown={allowOnlyLetters}
                             className={inputClass(!!errors.lastName)}
                         />
                         <ErrorText error={errors.lastName} />
                     </div>
                 </div>
-                {/* Row 3: Email  */}
+
+                {/* Row 2: Email */}
                 <div className="flex gap-4">
-                    {/* Email — autofetched, read-only */}
                     <div className="flex-1 flex flex-col gap-1">
                         <label className="text-sm text-gray-700">
                             Email ID <span className="text-red-500">*</span>
@@ -125,33 +280,14 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
                                     message: "Enter a valid email address",
                                 },
                             })}
-                            readOnly                          // ✅ not editable
+                            readOnly
                             className={`${inputClass(!!errors.email)} bg-gray-100 cursor-not-allowed`}
                         />
                         <ErrorText error={errors.email} />
                     </div>
-
-                    {/* Alt Email — only render if value exists */}
-                    {defaultValues?.altEmail && (  // ✅ fixed: was fetchedData
-                        <div className="flex-1 flex flex-col gap-1">
-                            <label className="text-sm text-gray-700">Alternative Email ID</label>
-                            <input
-                                type="email"
-                                placeholder="123@gmail.com"
-                                {...register("altEmail", {
-                                    pattern: {
-                                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                                        message: "Enter a valid email address",
-                                    },
-                                })}
-                                className={inputClass(!!errors.altEmail)}
-                            />
-                            <ErrorText error={errors.altEmail} />
-                        </div>
-                    )}
                 </div>
 
-                {/* Row 4: Phone + Alt Phone */}
+                {/* Row 3: Phone + Alt Phone */}
                 <div className="flex gap-4">
                     <div className="flex-1 flex flex-col gap-1">
                         <label className="text-sm text-gray-700">
@@ -193,7 +329,7 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
                     </div>
                 </div>
 
-                {/* Row 5: Gender */}
+                {/* Row 4: Gender */}
                 <div className="flex flex-col gap-2">
                     <label className="text-sm text-gray-700">
                         Gender <span className="text-red-500">*</span>
@@ -204,9 +340,7 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
                                 <input
                                     type="radio"
                                     value={option}
-                                    {...register("gender", {
-                                        required: "Please select a gender",
-                                    })}
+                                    {...register("gender", { required: "Please select a gender" })}
                                     className="w-4 h-4 accent-orange-500"
                                 />
                                 <span className="text-sm text-gray-700">{option}</span>
@@ -216,7 +350,7 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
                     <ErrorText error={errors.gender} />
                 </div>
 
-                {/* Row 6: Date of Birth */}
+                {/* Row 5: Date of Birth */}
                 <div className="flex flex-col gap-1">
                     <label className="text-sm text-gray-700">
                         Date of Birth <span className="text-red-500">*</span>
@@ -257,9 +391,7 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
                     <label className="flex items-center gap-2 cursor-pointer">
                         <input
                             type="checkbox"
-                            {...register("terms", {
-                                required: "You must accept the terms",
-                            })}
+                            {...register("terms", { required: "You must accept the terms" })}
                             className="w-4 h-4 accent-orange-500"
                         />
                         <span className="text-sm text-gray-600">
@@ -280,7 +412,6 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
                         Save & Continue
                     </button>
                 </div>
-
             </div>
         </form>
     );

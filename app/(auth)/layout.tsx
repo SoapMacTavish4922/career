@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="absolute inset-0 bg-gradient-to-br from-blue-950/70 to-blue-900/30" />
         <div className="absolute top-6 left-6 z-10">
           <Image
-            src="/idbilogo.png"
+            src="/white-intech-logo.png"
             alt="IDBI Intech"
             width={140}
             height={50}

@@ -1,15 +1,16 @@
 import "./globals.css";
-import type { ReactNode } from "react";
+import QueryProvider from "@/lib/providers/QueryProvider";
+import { AuthProvider } from "@/lib/context/AuthContext";
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="m-0 p-0">
-        {children}
+      <body>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

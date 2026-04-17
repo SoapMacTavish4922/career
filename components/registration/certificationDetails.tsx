@@ -1,15 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
+import { CertificationBlock } from "@/lib/types/registration";
 
-interface CertificationBlock {
-    certification: string;
-    institute: string;
-    accreditedWith: string;
-    yearOfPassing: string;
-    marks: string;
-    certificateFile: File | null;
-}
 
 interface Props {
     onNext: (data?: any) => void;
@@ -25,22 +19,6 @@ const emptyCertification = (): CertificationBlock => ({
     marks: "",
     certificateFile: null,
 });
-
-// ── Key blockers ──
-const allowOnlyNumbers = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-        !/^\d$/.test(e.key) &&
-        !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-    )
-        e.preventDefault();
-};
-const allowOnlyLetters = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-        !/^[a-zA-Z\s]$/.test(e.key) &&
-        !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-    ) e.preventDefault();
-};
-
 const allowYYYY = (e: React.KeyboardEvent<HTMLInputElement>) => {
     allowOnlyNumbers(e);
 };

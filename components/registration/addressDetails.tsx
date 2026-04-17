@@ -1,14 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
+import { AddressBlock } from "@/lib/types/registration";
 
-interface AddressBlock {
-  line1: string;
-  city: string;
-  state: string;
-  country: string;
-  pinCode: string;
-}
 
 interface Props {
   onNext: (data?: any) => void;
@@ -28,23 +23,9 @@ const emptyAddress = (): AddressBlock => ({
   pinCode: "",
 });
 
-const allowOnlyLetters = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  if (
-    !/^[a-zA-Z\s]$/.test(e.key) &&
-    !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-  ) {
-    e.preventDefault();
-  }
-};
 
-const allowOnlyNumbers = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  if (
-    !/^\d$/.test(e.key) &&
-    !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-  ) {
-    e.preventDefault();
-  }
-};
+
+
 
 const Field = ({
   placeholder,

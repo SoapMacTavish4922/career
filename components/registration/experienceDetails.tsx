@@ -1,17 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
+import { ExperienceBlock } from "@/lib/types/registration";
 
-interface ExperienceBlock {
-    experienceType: string;
-    title: string;
-    company: string;
-    location: string;
-    from: string;
-    to: string;
-    current: string;
-    notice: string;
-}
 
 interface Props {
     onNext: (data?: any) => void;
@@ -24,20 +16,6 @@ const emptyExperience = (): ExperienceBlock => ({
     location: "", from: "", to: "", current: "", notice: "Immediate Joiner",
 });
 
-// ── Key blockers ──
-const allowOnlyLetters = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-        !/^[a-zA-Z\s]$/.test(e.key) &&
-        !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-    ) e.preventDefault();
-};
-
-const allowOnlyNumbers = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-        !/^\d$/.test(e.key) &&
-        !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-    ) e.preventDefault();
-};
 
 // ── Reusable Field ──
 const Field = ({

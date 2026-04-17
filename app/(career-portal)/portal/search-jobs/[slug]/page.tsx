@@ -159,7 +159,7 @@ export default function JobDetailPage() {
             {/* ── Apply ── */}
             <div className="flex items-center gap-4 pb-4">
                 <button
-                    onClick={() => router.push("/registration")}
+                    onClick={() => router.push(`/portal/search-jobs/${params.slug}/apply-now`)}
                     className="bg-[#F26F24] hover:bg-orange-600 text-white text-sm font-bold px-10 py-3 rounded-xl transition-colors shadow-sm"
                 >
                     Apply Now

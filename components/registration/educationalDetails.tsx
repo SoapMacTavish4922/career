@@ -1,17 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { allowOnlyLetters, allowDecimal } from "@/lib/utils/keyboardHelpers";
+import { EducationBlock } from "@/lib/types/registration";
 
-interface EducationBlock {
-    school: string;
-    degree: string;
-    fieldOfStudy: string;
-    resultType: "cgpa" | "percentage" | "";
-    gpa: string;
-    from: string;
-    to: string;
-    otherDegree?: string;
-}
 
 interface Props {
     onNext: (data?: any) => void;
@@ -22,25 +14,6 @@ interface Props {
 const emptyEducation = (): EducationBlock => ({
     school: "", degree: "", fieldOfStudy: "", resultType: "", gpa: "", from: "", to: "",
 });
-
-// ── Key blockers ──
-const allowOnlyLetters = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-        !/^[a-zA-Z\s]$/.test(e.key) &&
-        !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-    ) {
-        e.preventDefault();
-    }
-};
-
-const allowDecimal = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-        !/[\d.]$/.test(e.key) &&
-        !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)
-    ) {
-        e.preventDefault();
-    }
-};
 
 // ── Reusable Field ──
 const Field = ({
@@ -131,7 +104,7 @@ const EducationCard = ({
 
                         onChange(index, "degree", value);
 
-                    
+
                         if (value !== "others") {
                             onChange(index, "otherDegree", "");
                         }
@@ -391,7 +364,7 @@ export default function EducationalDetails({ onNext, onBack, defaultValues }: Pr
                     <span className="text-xl font-bold leading-none">+</span>
                     Add Another
                 </button>
-                <span className="text-xs text-gray-400">{entries.length}/5</span>  
+                <span className="text-xs text-gray-400">{entries.length}/5</span>
             </div>
 
             {/* Buttons */}

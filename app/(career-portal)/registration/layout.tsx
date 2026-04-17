@@ -5,8 +5,11 @@ import BasicDetails from "@/components/registration/basicDetails";
 import AddressDetails from "@/components/registration/addressDetails";
 import EducationalDetails from "@/components/registration/educationalDetails";
 import ExperienceDetails from "@/components/registration/experienceDetails";
-import CertificationDetails from "@/components/registration/certificationDetails";
+//import CertificationDetails from "@/components/registration/certificationDetails";
 import DeclareAndSubmit from "@/components/registration/submitDetails";
+import { AllFormData } from "@/lib/types/registration";
+    
+
 
 const steps = [
     { id: 1, label: "Basic details" },
@@ -17,14 +20,14 @@ const steps = [
     { id: 5, label: "Declare and Submit" },
 ];
 interface Props {
-    defaultValues?: any; // pass pre-fetched DB data here
+    defaultValues?: AllFormData; // pass pre-fetched DB data here
 }
 
 export default function RegistrationLayout({ defaultValues }: Props) {
     const [currentStep, setCurrentStep] = useState(1);
 
     // ── Shared form data across all steps ──
-    const [formData, setFormData] = useState<any>(defaultValues ?? {});
+    const [formData, setFormData] = useState<AllFormData>(defaultValues ?? {});
 
     const goNext = (stepData?: any) => {
         if (stepData) setFormData((prev: any) => ({ ...prev, ...stepData }));
@@ -35,7 +38,7 @@ export default function RegistrationLayout({ defaultValues }: Props) {
         setCurrentStep((s) => Math.max(s - 1, 1));
     };
 
-    // ── Which component to show ──
+
     const renderStep = () => {
         switch (currentStep) {
             case 1: return <BasicDetails onNext={goNext} defaultValues={formData} />;
