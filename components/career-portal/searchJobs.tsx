@@ -312,7 +312,7 @@ export default function SearchJobs() {
         return true;
     });
 
-    // ✅ Pagination calculations
+
     const totalPages = Math.ceil(filtered.length / CARDS_PER_PAGE);
     const paginated = filtered.slice(
         (currentPage - 1) * CARDS_PER_PAGE,
@@ -387,7 +387,7 @@ export default function SearchJobs() {
                         <>
                             {/* Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
-                                {paginated.map((job) => (  // ✅ paginated instead of filtered
+                                {paginated.map((job) => (
                                     <JobCard key={job.id} job={job} />
                                 ))}
                             </div>

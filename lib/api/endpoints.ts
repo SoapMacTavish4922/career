@@ -5,7 +5,7 @@
 export const ENDPOINTS = {
 
     auth: {
-        login: "/auth/login",
+        login: "/v1/login",
         signup: "/auth/signup",
         logout: "/auth/logout",
         refresh: "/auth/refresh",
@@ -20,7 +20,6 @@ export const ENDPOINTS = {
         update: "/user/profile/update",
         photo: "/user/profile/photo",
         password: "/user/profile/password",
-        email: "/user/profile/email",
     },
 
     jobs: {

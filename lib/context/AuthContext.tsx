@@ -19,17 +19,20 @@ export interface User {
     name: string;
     email: string;
     profilePhoto?: string;
-    is_profile_complete: boolean; // false = new user, redirect to registration
+    is_profile_complete: boolean;
 }
 
 interface AuthContextType {
     user: User | null;
     isLoggedIn: boolean;
-    isLoading: boolean;             // true while restoring session on page load
+    isLoading: boolean;
+    showSessionExpired: boolean;          // controls the overlay
     setUser: (user: User | null) => void;
     login: (user: User, accessToken: string, refreshToken: string) => void;
     logout: () => void;
-    refreshTokens: () => Promise<boolean>; // returns true = success, false = expired
+    reLogin: (user: User, accessToken: string, refreshToken: string) => void; // re-auth without redirect
+    refreshTokens: () => Promise<boolean>;
+    triggerSessionExpiry: () => void;      // called by axios interceptor on 401
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -41,9 +44,16 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [showSessionExpired, setShowSessionExpired] = useState(false);
+    // ── Logout ────────────────────────────────────────────────────────────────
+    const logout = useCallback(() => {
+        tokenHelper.clearTokens();
+        Cookies.remove("user_info");
+        setUser(null);
+        setShowSessionExpired(false);
+    }, []);
 
-    // ── Restore user from cookie on every page load/refresh ──────────────────
-    // Without this, user would be logged out on every page refresh
+    // ── Restore user from cookie on every page load ───────────────────────────
     useEffect(() => {
         const savedUser = Cookies.get("user_info");
         const hasToken = tokenHelper.isLoggedIn();
@@ -52,65 +62,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
                 setUser(JSON.parse(savedUser));
             } catch {
-                // Cookie is corrupt — clear everything and start fresh
                 logout();
             }
+        } else if (savedUser && !hasToken) {
+            // Access token gone but refresh token may exist — try silent refresh
+            const tryRefresh = async () => {
+                const refreshToken = tokenHelper.getRefresh();
+                if (refreshToken) {
+                    try {
+                        const res = await api.post(ENDPOINTS.auth.refresh, {
+                            refresh_token: refreshToken,
+                        });
+                        const { access_token, refresh_token } = res.data;
+                        tokenHelper.setTokens(access_token, refresh_token);
+                        setUser(JSON.parse(savedUser));
+                        // No redirect — user stays on current page
+                    } catch {
+                        // Refresh also expired — show session expired overlay
+                        setShowSessionExpired(true);
+                    }
+                } else {
+                    logout();
+                }
+                setIsLoading(false);
+            };
+            tryRefresh();
+            return; // don't hit setIsLoading(false) below
         }
 
         setIsLoading(false);
     }, []);
 
-    // ── Login ─────────────────────────────────────────────────────────────────
-    // Called from login page after successful API response
-    // Saves tokens to cookies + user to context
-
+    // ── Login — first time or normal login ────────────────────────────────────
     const login = (user: User, accessToken: string, refreshToken: string) => {
         tokenHelper.setTokens(accessToken, refreshToken);
-
         Cookies.set("user_info", JSON.stringify(user), {
             expires: 7,
             sameSite: "Lax",
             secure: process.env.NODE_ENV === "production",
         });
-
         setUser(user);
+        setShowSessionExpired(false);
     };
 
-    // ── Logout ────────────────────────────────────────────────────────────────
-    // Clears all cookies + resets user state to null
-    // Called from MainLayout logout button and session expiry
+    // ── Re-login — called from SessionExpiredOverlay ──────────────────────────
+    // Restores auth state WITHOUT redirecting
+    // User stays exactly where they are — form data is preserved
+    const reLogin = (user: User, accessToken: string, refreshToken: string) => {
+        tokenHelper.setTokens(accessToken, refreshToken);
+        Cookies.set("user_info", JSON.stringify(user), {
+            expires: 7,
+            sameSite: "Lax",
+            secure: process.env.NODE_ENV === "production",
+        });
+        setUser(user);
+        setShowSessionExpired(false); // hide the overlay — user continues where they left off
+    };
 
-    const logout = useCallback(() => {
-        tokenHelper.clearTokens();
-        Cookies.remove("user_info");
-        setUser(null);
+
+
+    // ── Trigger session expiry — called by axios interceptor on final 401 ─────
+    // Shows the overlay instead of redirecting to login page
+    // This way the user doesn't lose their current page or form state
+    const triggerSessionExpiry = useCallback(() => {
+        setShowSessionExpired(true);
     }, []);
 
-    // ── Refresh Tokens ────────────────────────────────────────────────────────
-    // Called from SessionWarningModal when user clicks "Stay Logged In"
-    // Sends refresh token to Laravel → gets new access + refresh tokens
-    // Returns true if successful, false if refresh token also expired
-
+    // ── Refresh tokens — called from SessionWarningModal ─────────────────────
     const refreshTokens = useCallback(async (): Promise<boolean> => {
         const refreshToken = tokenHelper.getRefresh();
-
-        if (!refreshToken) {
-            logout();
-            return false;
-        }
+        if (!refreshToken) { logout(); return false; }
 
         try {
             const res = await api.post(ENDPOINTS.auth.refresh, {
                 refresh_token: refreshToken,
             });
-
             const { access_token, refresh_token } = res.data;
             tokenHelper.setTokens(access_token, refresh_token);
+            setShowSessionExpired(false);
             return true;
-
         } catch {
-            // Refresh token expired — force full logout
-            logout();
+            // Both tokens expired — show overlay, don't redirect
+            setShowSessionExpired(true);
             return false;
         }
     }, [logout]);
@@ -120,25 +153,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user,
             isLoggedIn: !!user,
             isLoading,
+            showSessionExpired,
             setUser,
             login,
             logout,
+            reLogin,
             refreshTokens,
-        }
-        }>
+            triggerSessionExpiry,
+        }}>
             {children}
         </AuthContext.Provider>
     );
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
-// Use this in every component that needs user state
-// e.g. const { user, isLoggedIn, logout } = useAuth();
 
 export function useAuth() {
     const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth must be used inside AuthProvider");
-    }
+    if (!context) throw new Error("useAuth must be used inside AuthProvider");
     return context;
 }

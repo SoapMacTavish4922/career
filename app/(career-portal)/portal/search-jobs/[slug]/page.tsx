@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ALL_JOBS, Job } from "@/lib/data/job";
+import { Job } from "@/lib/types/job";
 
 const toSlug = (title: string) =>
     title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");

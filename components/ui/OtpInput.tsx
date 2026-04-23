@@ -15,7 +15,7 @@ export default function OtpInput({ value, onChange, onKeyDown, onPaste, error }:
                 Enter the 6-digit OTP sent to your email ID <span className="text-orange-500">*</span>
             </label>
 
-            <div className="flex gap-2 justify-between" onPaste={onPaste}>
+            <div className="flex gap-1.5 sm:gap-2 justify-between" onPaste={onPaste}>
                 {value.map((digit, i) => (
                     <input
                         key={i}
@@ -26,9 +26,9 @@ export default function OtpInput({ value, onChange, onKeyDown, onPaste, error }:
                         value={digit}
                         onChange={(e) => onChange(i, e.target.value)}
                         onKeyDown={(e) => onKeyDown(i, e)}
-                        className={`w-11 h-12 text-center text-base font-bold border rounded-xl outline-none transition-all
-                            focus:ring-2 focus:ring-orange-100 focus:border-orange-500
-                            ${error ? "border-red-400" : digit ? "border-gray-900 bg-gray-50" : "border-gray-300"}`}
+                        className={`w-9 h-10 sm:w-11 sm:h-12 text-center text-sm sm:text-base font-bold border rounded-xl outline-none transition-all
+                                focus:ring-2 focus:ring-orange-100 focus:border-orange-500
+                                ${error ? "border-red-400" : digit ? "border-gray-900 bg-gray-50" : "border-gray-300"}`}
                     />
                 ))}
             </div>

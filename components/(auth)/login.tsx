@@ -120,7 +120,7 @@ export default function LoginPage() {
       <div className="w-full bg-white rounded-2xl shadow-md px-6 py-6">
         <form onSubmit={handleSubmit} noValidate>
 
-          {/* 🔴 API ERROR */}
+          
           {apiError && (
             <p className="text-xs text-red-500 mb-3 text-center">
               {apiError}

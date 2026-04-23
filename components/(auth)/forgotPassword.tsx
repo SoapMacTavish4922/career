@@ -105,7 +105,7 @@ export default function ForgotPasswordPage() {
         e.preventDefault();
         const newErrors: AuthErrors = {};
         if (!isStrongPassword(form.password))
-            newErrors.password = "Min 8 chars, 1 uppercase, 1 number required.";
+            newErrors.password = "Min 8 chars, 1 uppercase, 1 number and 1 symbol required.";
         if (form.password !== form.confirmPassword)
             newErrors.confirmPassword = "Passwords do not match.";
         if (Object.keys(newErrors).length > 0) return setErrors(newErrors);
@@ -119,8 +119,8 @@ export default function ForgotPasswordPage() {
     return (
         <>
             {/* Logo */}
-            <div className="w-20 h-20 mb-4 rounded-full bg-gradient-to-br from-blue-100 to-orange-100 flex items-center justify-center shadow-inner">
-                <Image src="/login-above.png" alt="Forgot Password" width={80} height={80} className="object-contain" />
+            <div className="w-24 h-24 mb-4 rounded-full bg-gradient-to-br from-blue-100 to-orange-100 flex items-center justify-center shadow-inner">
+                <Image src="/login-above.png" alt="Forgot Password" width={96} height={96} className="object-contain" />
             </div>
 
             <h1 className="text-xl font-bold text-gray-900 mb-1 text-center">Forgot Password?</h1>
@@ -199,7 +199,7 @@ export default function ForgotPasswordPage() {
                             <Field
                                 label="New Password" name="password"
                                 type={showPassword ? "text" : "password"}
-                                placeholder="Min 8 chars, 1 uppercase, 1 number"
+                                placeholder="Min 8 chars, 1 uppercase, 1 number and 1 symbol"
                                 value={form.password}
                                 onChange={(v) => { update("password", v); clearError("password"); }}
                                 error={errors.password} required

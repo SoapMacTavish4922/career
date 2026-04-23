@@ -23,10 +23,6 @@ const emptyAddress = (): AddressBlock => ({
   pinCode: "",
 });
 
-
-
-
-
 const Field = ({
   placeholder,
   value,

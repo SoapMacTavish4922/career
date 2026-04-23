@@ -1,6 +1,6 @@
 import api from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
-
+import { Job } from "@/lib/types/job";
 
 interface JobFilters {
     keyword?: string;
@@ -16,7 +16,7 @@ export const jobsService = {
     // Called on search jobs page
     // Laravel returns paginated list { data: Job[], meta: { total, per_page, current_page } }
 
-    getAll: async (filters?: JobFilters) => {
+    getAll: async (filters?: JobFilters): Promise<{ data: Job[]; meta: any }> => {
         const res = await api.get(ENDPOINTS.jobs.list, { params: filters });
         return res.data;
     },
@@ -24,7 +24,7 @@ export const jobsService = {
     // ── Get single job by slug ────────────────────────────────────────────────
     // Called on job detail page [slug]
 
-    getBySlug: async (slug: string) => {
+    getBySlug: async (slug: string): Promise<Job> => {
         const res = await api.get(ENDPOINTS.jobs.detail(slug));
         return res.data;
     },
@@ -41,7 +41,7 @@ export const jobsService = {
     // ── Get applied jobs ──────────────────────────────────────────────────────
     // Called on applied jobs page
 
-    getApplied: async () => {
+    getApplied: async (): Promise<{ data: Job[] }> => {
         const res = await api.get(ENDPOINTS.jobs.applied);
         return res.data;
     },
