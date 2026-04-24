@@ -1,4 +1,4 @@
-// lib/types/job.ts
+
 
 export interface Job {
     id: number;
@@ -12,4 +12,8 @@ export interface Job {
     certifications: string[];
     responsibilities: string[];
     postedOn: string;
+}
+
+export interface AppliedJob extends Job {
+    status: "In progress" | "Accepted" | "Rejected";
 }

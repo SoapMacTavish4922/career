@@ -9,7 +9,22 @@ export const authService = {
 
     login: async (email: string, password: string) => {
         const res = await api.post(ENDPOINTS.auth.login, { email, password });
-        return res.data;
+        const data = res.data;
+
+        // Build user object from flat response
+        const user = {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            is_profile_complete: data.is_profile_complete,
+            profilePhoto: data.profile_photo ?? undefined,
+        };
+
+        return {
+            user,                           // ← shaped correctly for AuthContext
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+        };
     },
 
     // ── Logout ────────────────────────────────────────────────────────────────
@@ -45,7 +60,6 @@ export const authService = {
     // ── Signup — Step 3: Create account ──────────────────────────────────────
 
     signup: async (data: {
-        userName: string;
         email: string;
         password: string;
     }) => {

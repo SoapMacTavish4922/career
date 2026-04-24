@@ -28,9 +28,9 @@ interface AuthContextType {
     isLoading: boolean;
     showSessionExpired: boolean;          // controls the overlay
     setUser: (user: User | null) => void;
-    login: (user: User, accessToken: string, refreshToken: string) => void;
+    login: (userData: Omit<User, never>, accessToken: string, refreshToken: string) => void;
+    reLogin: (userData: Omit<User, never>, accessToken: string, refreshToken: string) => void;
     logout: () => void;
-    reLogin: (user: User, accessToken: string, refreshToken: string) => void; // re-auth without redirect
     refreshTokens: () => Promise<boolean>;
     triggerSessionExpiry: () => void;      // called by axios interceptor on 401
 }

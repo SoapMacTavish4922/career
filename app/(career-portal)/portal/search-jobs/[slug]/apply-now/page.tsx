@@ -2,82 +2,16 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ALL_JOBS } from "@/lib/data/job";
-
-const toSlug = (title: string) =>
-    title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
-// ── Dummy User Data — replace with API call ───────────────────────────────────
-
-const DUMMY_USER = {
-    firstName: "Raj",
-    middleName: "Kumar",
-    lastName: "Sharma",
-    email: "raj.sharma@gmail.com",
-    altEmail: "raj123@gmail.com",
-    phone: "9876543210",
-    altPhone: "9123456780",
-    gender: "Male",
-    dob: "1998-08-15",
-    permanentAddress: {
-        line1: "12, Green Park Colony",
-        line2: "Near City Mall",
-        city: "Mumbai",
-        state: "Maharashtra",
-        country: "India",
-        pinCode: "400001",
-    },
-    currentAddress: {
-        line1: "45, Andheri West",
-        line2: "Lokhandwala Complex",
-        city: "Mumbai",
-        state: "Maharashtra",
-        country: "India",
-        pinCode: "400053",
-    },
-    education: [
-        {
-            school: "St. Xavier's College",
-            degree: "Bachelor's",
-            fieldOfStudy: "Computer Science",
-            resultType: "cgpa",
-            gpa: "8.5",
-            from: "2016-07",
-            to: "2020-05",
-        },
-    ],
-    experience: [
-        {
-            experienceType: "experienced",
-            title: "Frontend Developer",
-            company: "TechCorp Solutions",
-            location: "Mumbai",
-            from: "2020-07",
-            to: "2023-12",
-            current: "800000",
-            notice: "30 Days",
-        },
-    ],
-    certifications: [
-        {
-            certification: "Cloud Computing",
-            institute: "NPTEL",
-            yearOfPassing: "2021",
-            marks: "85",
-        },
-    ],
-};
+import { useJob, useApplyJob } from "@/lib/hooks/useJobs";
+import { useProfile } from "@/lib/hooks/useUser";
 
 // ── Ticker ────────────────────────────────────────────────────────────────────
 
 function Ticker() {
     const message = "⚠ Please review and update your profile information before applying for this role. Accurate details improve your chances of selection.";
-
     return (
         <div className="w-full bg-orange-500 py-2.5 px-4 rounded-3xl">
-            <p className="text-xs font-medium text-white text-center">
-                {message}
-            </p>
+            <p className="text-xs font-medium text-white text-center">{message}</p>
         </div>
     );
 }
@@ -96,7 +30,7 @@ function InfoRow({ label, value }: { label: string; value?: string }) {
     );
 }
 
-// ── Section ───────────────────────────────────────────────────────────────────
+// ── Modal Section ─────────────────────────────────────────────────────────────
 
 function ModalSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
@@ -112,53 +46,38 @@ function ModalSection({ title, children }: { title: string; children: React.Reac
 
 // ── Review Modal ──────────────────────────────────────────────────────────────
 
-function ReviewModal({
-    user,
-    onClose,
-    onEdit,
-}: {
-    user: typeof DUMMY_USER;
-    onClose: () => void;
-    onEdit: () => void;
-}) {
+function ReviewModal({ user, onClose, onEdit }: { user: any; onClose: () => void; onEdit: () => void; }) {
     const fullName = [user.firstName, user.middleName, user.lastName].filter(Boolean).join(" ");
     const permanentAddr = [
-        user.permanentAddress.line1, user.permanentAddress.line2,
-        user.permanentAddress.city, user.permanentAddress.state,
-        user.permanentAddress.country, user.permanentAddress.pinCode,
+        user.permanentAddress?.line1, user.permanentAddress?.line2,
+        user.permanentAddress?.city, user.permanentAddress?.state,
+        user.permanentAddress?.country, user.permanentAddress?.pinCode,
     ].filter(Boolean).join(", ");
     const currentAddr = [
-        user.currentAddress.line1, user.currentAddress.line2,
-        user.currentAddress.city, user.currentAddress.state,
-        user.currentAddress.country, user.currentAddress.pinCode,
+        user.currentAddress?.line1, user.currentAddress?.line2,
+        user.currentAddress?.city, user.currentAddress?.state,
+        user.currentAddress?.country, user.currentAddress?.pinCode,
     ].filter(Boolean).join(", ");
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[88vh]">
 
-                {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
                     <div>
                         <h3 className="text-base font-bold text-gray-900">Your Profile Information</h3>
                         <p className="text-xs text-gray-400 mt-0.5">Review your details before applying</p>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300 transition-colors"
-                    >
+                    <button onClick={onClose}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300 transition-colors">
                         <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                             <path d="M18 6 6 18M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
 
-                {/* Scrollable body */}
                 <div className="overflow-y-auto flex-1 px-6 py-5">
-
                     <ModalSection title="Basic Details">
                         <InfoRow label="Full Name" value={fullName} />
                         <InfoRow label="Email" value={user.email} />
@@ -175,7 +94,7 @@ function ReviewModal({
                     </ModalSection>
 
                     <ModalSection title="Education">
-                        {user.education.map((edu, i) => (
+                        {user.education?.map((edu: any, i: number) => (
                             <div key={i} className={i > 0 ? "pt-3 mt-3 border-t border-gray-200" : ""}>
                                 <InfoRow label="School" value={edu.school} />
                                 <InfoRow label="Degree" value={edu.degree} />
@@ -187,7 +106,7 @@ function ReviewModal({
                     </ModalSection>
 
                     <ModalSection title="Experience">
-                        {user.experience.map((exp, i) => (
+                        {user.experience?.map((exp: any, i: number) => (
                             <div key={i} className={i > 0 ? "pt-3 mt-3 border-t border-gray-200" : ""}>
                                 {exp.experienceType === "fresher" ? (
                                     <InfoRow label="Type" value="Fresher" />
@@ -205,9 +124,9 @@ function ReviewModal({
                         ))}
                     </ModalSection>
 
-                    {user.certifications.length > 0 && (
+                    {user.certifications?.length > 0 && (
                         <ModalSection title="Certifications">
-                            {user.certifications.map((cert, i) => (
+                            {user.certifications.map((cert: any, i: number) => (
                                 <div key={i} className={i > 0 ? "pt-3 mt-3 border-t border-gray-200" : ""}>
                                     <InfoRow label="Certification" value={cert.certification} />
                                     <InfoRow label="Institute" value={cert.institute} />
@@ -219,22 +138,17 @@ function ReviewModal({
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
-                    <button
-                        onClick={onEdit}
-                        className="flex-1 border border-gray-300 text-gray-600 text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                    >
+                    <button onClick={onEdit}
+                        className="flex-1 border border-gray-300 text-gray-600 text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
                         <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                         </svg>
                         Edit Details
                     </button>
-                    <button
-                        onClick={onClose}
-                        className="flex-1 bg-[#006256] hover:bg-[#004d45] text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
-                    >
+                    <button onClick={onClose}
+                        className="flex-1 bg-[#006256] hover:bg-[#004d45] text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
                         Looks Good
                     </button>
                 </div>
@@ -243,17 +157,59 @@ function ReviewModal({
     );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function ApplyPageSkeleton() {
+    return (
+        <div className="max-w-2xl flex flex-col gap-6 animate-pulse">
+            <div className="h-4 w-24 bg-gray-200 rounded" />
+            <div className="bg-gray-200 rounded-2xl p-6 flex flex-col gap-3">
+                <div className="h-5 bg-gray-300 rounded w-20" />
+                <div className="h-7 bg-gray-300 rounded w-3/4" />
+                <div className="flex gap-4">
+                    <div className="h-4 bg-gray-300 rounded w-24" />
+                    <div className="h-4 bg-gray-300 rounded w-20" />
+                </div>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-4">
+                <div className="h-5 bg-gray-200 rounded w-40" />
+                <div className="h-4 bg-gray-200 rounded w-56" />
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i}>
+                            <div className="h-3 bg-gray-200 rounded w-16 mb-1" />
+                            <div className="h-4 bg-gray-200 rounded w-24" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
 export default function ApplyPage() {
     const params = useParams();
     const router = useRouter();
-    const job = ALL_JOBS.find((j) => toSlug(j.title) === String(params.slug));
+    const slug = String(params.slug);
+
+    // ── Fetch job details ─────────────────────────────────────────────────────
+    // GET /jobs/{slug} — job info for the header card
+    const { data: job, isLoading: jobLoading, isError: jobError } = useJob(slug);
+
+    // ── Fetch user profile ────────────────────────────────────────────────────
+    // GET /user/profile — user info for the review modal and applicant summary
+    const { data: profile, isLoading: profileLoading } = useProfile();
+
+    // ── Apply mutation ────────────────────────────────────────────────────────
+    // POST /jobs/{id}/apply — submits the application
+    // On success → invalidates applied jobs cache automatically
+    const { mutate: applyJob, isPending: applying } = useApplyJob();
 
     const [showModal, setShowModal] = useState(false);
     const [confirmed, setConfirmed] = useState(false);
     const [confirmError, setConfirmError] = useState(false);
-    const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
     // Show modal automatically on page load
@@ -262,18 +218,32 @@ export default function ApplyPage() {
         return () => clearTimeout(timer);
     }, []);
 
-    const handleApply = async () => {
-        if (!confirmed) {
-            setConfirmError(true);
-            return;
-        }
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1800)); // replace with API call
-        setLoading(false);
-        setSubmitted(true);
+    const handleApply = () => {
+        if (!confirmed) { setConfirmError(true); return; }
+        if (!job) return;
+
+        // POST /jobs/{id}/apply via axios with Bearer token
+        applyJob(job.id, {
+            onSuccess: () => setSubmitted(true),
+            onError: (error: any) => {
+                const status = error?.response?.status;
+                if (status === 409) {
+                    // 409 = already applied
+                    alert("You have already applied for this job.");
+                } else {
+                    alert("Failed to submit application. Please try again.");
+                }
+            },
+        });
     };
 
-    if (!job) {
+    // ── Loading ───────────────────────────────────────────────────────────────
+    if (jobLoading || profileLoading) return (
+        <div className="p-6"><ApplyPageSkeleton /></div>
+    );
+
+    // ── Error / Not found ─────────────────────────────────────────────────────
+    if (jobError || !job) {
         return (
             <div className="flex flex-col items-center justify-center h-64 gap-3">
                 <p className="text-gray-500 text-sm">Job not found.</p>
@@ -284,8 +254,9 @@ export default function ApplyPage() {
         );
     }
 
-    // ── Success Screen ────────────────────────────────────────────────────────
+    const user = profile ?? {};
 
+    // ── Success Screen ────────────────────────────────────────────────────────
     if (submitted) {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
@@ -300,7 +271,7 @@ export default function ApplyPage() {
                         You've successfully applied for{" "}
                         <span className="font-semibold text-gray-800">{job.title}</span>.
                         Our HR team will reach out to you at{" "}
-                        <span className="font-semibold text-[#F26F24]">{DUMMY_USER.email}</span>.
+                        <span className="font-semibold text-[#F26F24]">{user.email}</span>.
                     </p>
                 </div>
                 <button
@@ -323,10 +294,8 @@ export default function ApplyPage() {
             <div className="max-w-2xl flex flex-col gap-6">
 
                 {/* Back */}
-                <button
-                    onClick={() => router.back()}
-                    className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#006256] transition-colors w-fit font-medium"
-                >
+                <button onClick={() => router.back()}
+                    className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#006256] transition-colors w-fit font-medium">
                     <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 5l-7 7 7 7" />
                     </svg>
@@ -350,18 +319,14 @@ export default function ApplyPage() {
                 <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-1">
-                                Applying As
-                            </p>
+                            <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-1">Applying As</p>
                             <p className="text-base font-bold text-gray-900">
-                                {[DUMMY_USER.firstName, DUMMY_USER.middleName, DUMMY_USER.lastName].filter(Boolean).join(" ")}
+                                {[user.firstName, user.middleName, user.lastName].filter(Boolean).join(" ")}
                             </p>
-                            <p className="text-sm text-gray-500">{DUMMY_USER.email}</p>
+                            <p className="text-sm text-gray-500">{user.email}</p>
                         </div>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="flex items-center gap-2 text-xs font-semibold text-[#006256] border border-[#006256]/30 bg-[#006256]/5 hover:bg-[#006256]/10 px-4 py-2 rounded-xl transition-colors"
-                        >
+                        <button onClick={() => setShowModal(true)}
+                            className="flex items-center gap-2 text-xs font-semibold text-[#006256] border border-[#006256]/30 bg-[#006256]/5 hover:bg-[#006256]/10 px-4 py-2 rounded-xl transition-colors">
                             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                                 <circle cx="12" cy="12" r="3" />
@@ -370,17 +335,16 @@ export default function ApplyPage() {
                         </button>
                     </div>
 
-                    {/* Quick info */}
                     <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
                         {[
-                            { label: "Phone", value: DUMMY_USER.phone },
-                            { label: "Gender", value: DUMMY_USER.gender },
-                            { label: "Latest Degree", value: DUMMY_USER.education[0]?.degree },
-                            { label: "Experience", value: DUMMY_USER.experience[0]?.experienceType === "fresher" ? "Fresher" : DUMMY_USER.experience[0]?.title },
+                            { label: "Phone", value: user.phone },
+                            { label: "Gender", value: user.gender },
+                            { label: "Latest Degree", value: user.education?.[0]?.degree },
+                            { label: "Experience", value: user.experience?.[0]?.experienceType === "fresher" ? "Fresher" : user.experience?.[0]?.title },
                         ].map((item) => (
                             <div key={item.label}>
                                 <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{item.label}</p>
-                                <p className="text-sm text-gray-800 font-medium mt-0.5">{item.value}</p>
+                                <p className="text-sm text-gray-800 font-medium mt-0.5">{item.value ?? "—"}</p>
                             </div>
                         ))}
                     </div>
@@ -418,8 +382,7 @@ export default function ApplyPage() {
                 >
                     <div className="flex gap-3 items-start">
                         <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all
-                            ${confirmed ? "bg-[#006256] border-[#006256]" : "border-gray-300 bg-white"}`}
-                        >
+                            ${confirmed ? "bg-[#006256] border-[#006256]" : "border-gray-300 bg-white"}`}>
                             {confirmed && (
                                 <svg width="10" height="10" fill="none" stroke="white" strokeWidth="3" viewBox="0 0 24 24">
                                     <path d="M20 6 9 17l-5-5" />
@@ -427,9 +390,7 @@ export default function ApplyPage() {
                             )}
                         </div>
                         <div>
-                            <p className="text-sm font-semibold text-gray-800 mb-1">
-                                I confirm my information is accurate
-                            </p>
+                            <p className="text-sm font-semibold text-gray-800 mb-1">I confirm my information is accurate</p>
                             <p className="text-xs text-gray-500 leading-relaxed">
                                 I have reviewed all my profile details and confirm they are true and up to date.
                                 I understand that inaccurate information may result in disqualification.
@@ -451,10 +412,10 @@ export default function ApplyPage() {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={handleApply}
-                        disabled={loading}
+                        disabled={applying}
                         className="flex-1 bg-[#F26F24] hover:bg-orange-600 text-white text-sm font-bold py-3.5 rounded-xl transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        {loading ? (
+                        {applying ? (
                             <>
                                 <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -464,10 +425,8 @@ export default function ApplyPage() {
                             </>
                         ) : "Submit Application"}
                     </button>
-                    <button
-                        onClick={() => router.back()}
-                        className="text-sm font-semibold text-gray-400 hover:text-gray-600 transition-colors"
-                    >
+                    <button onClick={() => router.back()}
+                        className="text-sm font-semibold text-gray-400 hover:text-gray-600 transition-colors">
                         Cancel
                     </button>
                 </div>
@@ -476,22 +435,11 @@ export default function ApplyPage() {
             {/* Review Modal */}
             {showModal && (
                 <ReviewModal
-                    user={DUMMY_USER}
+                    user={user}
                     onClose={() => setShowModal(false)}
                     onEdit={() => router.push("/portal/edit-details")}
                 />
             )}
-
-            {/* Marquee animation */}
-            <style jsx>{`
-                @keyframes marquee {
-                    from { transform: translateX(0); }
-                    to   { transform: translateX(-33.33%); }
-                }
-                .animate-marquee {
-                    animation: marquee 18s linear infinite;
-                }
-            `}</style>
         </>
     );
 }

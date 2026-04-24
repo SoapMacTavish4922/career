@@ -5,23 +5,28 @@ import Link from "next/link";
 import Image from "next/image";
 import { isValidEmail, isStrongPassword } from "@/lib/validators/auth";
 import { AuthStep, ForgotPasswordFormState, AuthErrors } from "@/lib/types/auth";
+import { useSendForgotPasswordOtp, useVerifyOtp, useResetPassword } from "@/lib/hooks/useAuth";
 import Field from "@/components/ui/Fields";
 import SubmitButton from "@/components/ui/SubmitButton";
 import PasswordStrength from "@/components/ui/PasswordStrength";
 import OtpInput from "@/components/ui/OtpInput";
-import StepIndicator from "@/components/ui/StepIndicator"
+import StepIndicator from "@/components/ui/StepIndicator";
 
 const stepIndex: Record<AuthStep, number> = { email: 0, otp: 1, password: 2, success: 3 };
-// ── MAIN ─────────────────────────────────────────────────────────────────────
 
 export default function ForgotPasswordPage() {
+
+    // ── React Query mutations ─────────────────────────────────────────────────
+    const { mutate: sendOtp, isPending: sendingOtp } = useSendForgotPasswordOtp();
+    const { mutate: verifyOtp, isPending: verifyingOtp } = useVerifyOtp();
+    const { mutate: resetPassword, isPending: resettingPassword } = useResetPassword();
+
     const [step, setStep] = useState<AuthStep>("email");
     const [form, setForm] = useState<ForgotPasswordFormState>({
         email: "", otp: ["", "", "", "", "", ""],
         password: "", confirmPassword: "",
     });
     const [errors, setErrors] = useState<AuthErrors>({});
-    const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
@@ -32,21 +37,36 @@ export default function ForgotPasswordPage() {
     const clearError = (field: keyof AuthErrors) =>
         setErrors((p) => { const e = { ...p }; delete e[field]; return e; });
 
-    // ── Step 1: Email ─────────────────────────────────────────────────────────
+    // ── Combined loading state ────────────────────────────────────────────────
+    const loading = sendingOtp || verifyingOtp || resettingPassword;
+
+    // ── Step 1: Send OTP to email ─────────────────────────────────────────────
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isValidEmail(form.email))
             return setErrors({ email: "Please enter a valid email address." });
 
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1200)); // replace with API call
-        setLoading(false);
-        setStep("otp");
-        startResendTimer();
+        // POST /auth/send-otp with type: "forgot_password"
+        sendOtp(form.email, {
+            onSuccess: () => {
+                setStep("otp");
+                startResendTimer();
+            },
+            onError: (error: any) => {
+                const status = error?.response?.status;
+                if (status === 404) {
+                    setErrors({ email: "No account found with this email address." });
+                } else if (status === 422) {
+                    setErrors({ email: "Please enter a valid email address." });
+                } else {
+                    setErrors({ email: "Failed to send OTP. Please try again." });
+                }
+            },
+        });
     };
 
-    // ── Step 2: OTP ───────────────────────────────────────────────────────────
+    // ── Step 2: Verify OTP ────────────────────────────────────────────────────
 
     const startResendTimer = () => {
         setResendTimer(30);
@@ -89,14 +109,30 @@ export default function ForgotPasswordPage() {
         if (otpValue.length < 6)
             return setErrors({ otp: "Please enter the 6-digit OTP sent to your email ID." });
 
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1200)); // replace with API call
-        setLoading(false);
+        // POST /auth/verify-otp
+        verifyOtp({ email: form.email, otp: otpValue }, {
+            onSuccess: () => {
+                setStep("password");
+            },
+            onError: (error: any) => {
+                const status = error?.response?.status;
+                if (status === 422) {
+                    setErrors({ otp: "Invalid OTP. Please try again." });
+                } else if (status === 410) {
+                    setErrors({ otp: "OTP has expired. Please request a new one." });
+                } else {
+                    setErrors({ otp: "Failed to verify OTP. Please try again." });
+                }
+            },
+        });
+    };
 
-        if (otpValue !== "123456")
-            return setErrors({ otp: "Invalid OTP. Please try again." });
-
-        setStep("password");
+    const handleResendOtp = () => {
+        // POST /auth/send-otp again
+        sendOtp(form.email, {
+            onSuccess: () => startResendTimer(),
+            onError: () => setErrors({ otp: "Failed to resend OTP. Please try again." }),
+        });
     };
 
     // ── Step 3: Reset Password ────────────────────────────────────────────────
@@ -110,10 +146,32 @@ export default function ForgotPasswordPage() {
             newErrors.confirmPassword = "Passwords do not match.";
         if (Object.keys(newErrors).length > 0) return setErrors(newErrors);
 
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1500)); // replace with API call
-        setLoading(false);
-        setStep("success");
+        // POST /auth/reset-password
+        resetPassword(
+            {
+                email: form.email,
+                otp: form.otp.join(""),
+                password: form.password,
+                password_confirmation: form.confirmPassword,
+            },
+            {
+                onSuccess: () => {
+                    setStep("success");
+                },
+                onError: (error: any) => {
+                    const status = error?.response?.status;
+                    if (status === 422) {
+                        setErrors({ password: "Password reset failed. Please try again." });
+                    } else if (status === 410) {
+                        // OTP expired — send back to OTP step
+                        setErrors({ otp: "OTP has expired. Please request a new one." });
+                        setStep("otp");
+                    } else {
+                        setErrors({ password: "Something went wrong. Please try again." });
+                    }
+                },
+            }
+        );
     };
 
     return (
@@ -182,10 +240,11 @@ export default function ForgotPasswordPage() {
                             ) : (
                                 <button
                                     type="button"
-                                    onClick={startResendTimer}
-                                    className="text-orange-500 font-medium hover:underline"
+                                    onClick={handleResendOtp}
+                                    disabled={sendingOtp}
+                                    className="text-orange-500 font-medium hover:underline disabled:opacity-50"
                                 >
-                                    Resend OTP
+                                    {sendingOtp ? "Sending..." : "Resend OTP"}
                                 </button>
                             )}
                         </div>

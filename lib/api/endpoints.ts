@@ -5,13 +5,13 @@
 export const ENDPOINTS = {
 
     auth: {
-        login: "/v1/login",
-        signup: "/auth/signup",
-        logout: "/auth/logout",
+        login: "/login",
+        signup: "/signup",
+        logout: "/logout",
         refresh: "/auth/refresh",
-        sendOtp: "/auth/send-otp",
-        verifyOtp: "/auth/verify-otp",
-        resetPassword: "/auth/reset-password",
+        sendOtp: "/send-otp",
+        verifyOtp: "/verify-otp",
+        resetPassword: "/reset-password",
         me: "/auth/me",
     },
 

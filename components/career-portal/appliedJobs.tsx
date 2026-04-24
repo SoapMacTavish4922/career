@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useAppliedJobs } from "@/lib/hooks/useJobs";
+import { AppliedJob } from "@/lib/types/job";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 // Update these fields to match whatever your Laravel API actually returns
@@ -96,7 +97,7 @@ export default function AppliedJobs() {
     // ── Parse response ────────────────────────────────────────────────────────
     // Laravel paginated response shape: { data: Job[], meta: { total, ... } }
     // If your Laravel returns a plain array instead, change to: data ?? []
-    const jobs: Job[] = data?.data ?? [];
+    const jobs = (data?.data ?? []) as AppliedJob[];
 
     // ── Loading state ─────────────────────────────────────────────────────────
     if (isLoading) return <AppliedJobsSkeleton />;

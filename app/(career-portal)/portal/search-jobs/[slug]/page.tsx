@@ -1,27 +1,20 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { Job } from "@/lib/types/job";
+import { useJob } from "@/lib/hooks/useJobs";
 
-const toSlug = (title: string) =>
-    title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
-
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-
                 <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{title}</h2>
             </div>
             {children}
         </div>
     );
 }
-
-
 
 function BulletList({ items }: { items: string[] }) {
     return (
@@ -35,8 +28,6 @@ function BulletList({ items }: { items: string[] }) {
         </ul>
     );
 }
-
-
 
 function TagList({ items }: { items: string[] }) {
     return (
@@ -57,17 +48,73 @@ function Divider() {
     return <div className="h-px bg-gray-100" />;
 }
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function JobDetailSkeleton() {
+    return (
+        <div className="max-w-3xl flex flex-col gap-7 animate-pulse">
+            <div className="h-4 w-24 bg-gray-200 rounded" />
+            <div className="bg-gray-200 rounded-2xl p-7 flex flex-col gap-4">
+                <div className="h-5 bg-gray-300 rounded w-20" />
+                <div className="h-8 bg-gray-300 rounded w-3/4" />
+                <div className="flex gap-6">
+                    <div className="h-4 bg-gray-300 rounded w-28" />
+                    <div className="h-4 bg-gray-300 rounded w-24" />
+                </div>
+            </div>
+            <div className="bg-gray-100 rounded-2xl p-6 flex flex-col gap-3">
+                <div className="h-4 bg-gray-200 rounded w-32" />
+                <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded w-full" />
+                    <div className="h-3 bg-gray-200 rounded w-5/6" />
+                    <div className="h-3 bg-gray-200 rounded w-4/6" />
+                </div>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col gap-6">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex flex-col gap-3">
+                        <div className="h-4 bg-gray-200 rounded w-40" />
+                        <div className="space-y-2">
+                            <div className="h-3 bg-gray-200 rounded w-full" />
+                            <div className="h-3 bg-gray-200 rounded w-4/5" />
+                        </div>
+                        {i < 2 && <div className="h-px bg-gray-100 mt-2" />}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
 export default function JobDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const job = ALL_JOBS.find((j) => toSlug(j.title) === String(params.slug));
+    const slug   = String(params.slug);
 
-    if (!job) {
+    // ── Axios + React Query ───────────────────────────────────────────────────
+    // useJob calls GET /jobs/{slug} via axios
+    // Bearer token attached automatically by request interceptor
+    // Result cached by React Query — won't refetch on every render
+    const { data: job, isLoading, isError } = useJob(slug);
+
+    // ── Loading state ─────────────────────────────────────────────────────────
+    if (isLoading) return (
+        <div className="p-6">
+            <JobDetailSkeleton />
+        </div>
+    );
+
+    // ── Error / Not found state ───────────────────────────────────────────────
+    if (isError || !job) {
         return (
             <div className="flex flex-col items-center justify-center h-64 gap-3">
                 <p className="text-gray-500 text-sm">Job not found.</p>
-                <button onClick={() => router.back()} className="text-sm text-[#F26F24] hover:underline">
+                <button
+                    onClick={() => router.back()}
+                    className="text-sm text-[#F26F24] hover:underline"
+                >
                     Go back
                 </button>
             </div>
@@ -93,41 +140,32 @@ export default function JobDetailPage() {
                 <span className="w-fit text-xs font-bold uppercase tracking-widest bg-white/15 text-white/90 px-3 py-1 rounded-full">
                     {job.jobType}
                 </span>
-
                 <h1 className="text-2xl font-bold text-white leading-snug">
                     {job.title}
                 </h1>
-
                 <div className="flex flex-wrap gap-x-8 gap-y-1.5">
-
                     <span className="flex items-center gap-1.5 text-sm text-white/75">
-                        <img src="/location.svg" alt="icon" className="w-4 h-4" />
+                        <img src="/location.svg" alt="location" className="w-4 h-4" />
                         {job.location}
                     </span>
-
                     <span className="flex items-center gap-1.5 text-sm text-white/75">
-                        <img src="/briefcase.svg" alt="icon" className="w-4 h-4" />
+                        <img src="/briefcase.svg" alt="experience" className="w-4 h-4" />
                         {job.experience}
                     </span>
-
                     <span className="flex items-center gap-1.5 text-sm text-white/75">
-                        <img src="/calendar4.svg" alt="icon" className="w-4 h-4" />
+                        <img src="/calendar4.svg" alt="posted" className="w-4 h-4" />
                         Posted On: {job.postedOn}
                     </span>
-
                 </div>
             </div>
 
-            {/* ── Description — cream accent, prominent ── */}
+            {/* ── Description ── */}
             <div className="bg-[#fdf8f4] border border-orange-100 rounded-2xl px-6 py-6 flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-
-                    <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Job Description</h2>
-                </div>
+                <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Job Description</h2>
                 <p className="text-sm text-gray-700 leading-7">{job.description}</p>
             </div>
 
-            {/* ── Rest of content ── */}
+            {/* ── Content sections ── */}
             <div className="bg-white border border-gray-200 rounded-2xl px-6 py-6 flex flex-col gap-7">
 
                 <Section title="Key Responsibilities">
@@ -159,7 +197,7 @@ export default function JobDetailPage() {
             {/* ── Apply ── */}
             <div className="flex items-center gap-4 pb-4">
                 <button
-                    onClick={() => router.push(`/portal/search-jobs/${params.slug}/apply-now`)}
+                    onClick={() => router.push(`/portal/search-jobs/${slug}/apply-now`)}
                     className="bg-[#F26F24] hover:bg-orange-600 text-white text-sm font-bold px-10 py-3 rounded-xl transition-colors shadow-sm"
                 >
                     Apply Now

@@ -3,8 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { isValidEmail, isStrongPassword } from "@/lib/validators/auth";
 import { SignupStep, SignupFormState, AuthErrors } from "@/lib/types/auth";
+import { useSendOtp, useVerifyOtp, useSignup } from "@/lib/hooks/useAuth";
+import { useAuth } from "@/lib/context/AuthContext";
 import Field from "@/components/ui/Fields";
 import SubmitButton from "@/components/ui/SubmitButton";
 import PasswordStrength from "@/components/ui/PasswordStrength";
@@ -12,13 +15,20 @@ import OtpInput from "@/components/ui/OtpInput";
 import StepIndicator from "@/components/ui/StepIndicator";
 
 export default function SignupPage() {
+    const router = useRouter();
+    const { login } = useAuth();
+
+    // ── React Query mutations ─────────────────────────────────────────────────
+    const { mutate: sendOtp, isPending: sendingOtp } = useSendOtp();
+    const { mutate: verifyOtp, isPending: verifyingOtp } = useVerifyOtp();
+    const { mutate: signup, isPending: signingUp } = useSignup();
+
     const [step, setStep] = useState<SignupStep>("details");
     const [form, setForm] = useState<SignupFormState>({
         userName: "", email: "", otp: ["", "", "", "", "", ""],
         password: "", confirmPassword: "",
     });
     const [errors, setErrors] = useState<AuthErrors>({});
-    const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
@@ -29,23 +39,34 @@ export default function SignupPage() {
     const clearError = (field: keyof AuthErrors) =>
         setErrors((p) => { const e = { ...p }; delete e[field]; return e; });
 
-    // ── Step 1: Details ───────────────────────────────────────────────────────
+    // ── Step 1: Send OTP ──────────────────────────────────────────────────────
 
     const handleDetailsSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const newErrors: AuthErrors = {};
-        if (!form.userName.trim()) newErrors.userName = "Username is required.";
         if (!isValidEmail(form.email)) newErrors.email = "Please enter a valid email address.";
         if (Object.keys(newErrors).length > 0) return setErrors(newErrors);
 
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1200));
-        setLoading(false);
-        setStep("otp");
-        startResendTimer();
+        // POST /auth/send-otp
+        sendOtp(form.email, {
+            onSuccess: () => {
+                setStep("otp");
+                startResendTimer();
+            },
+            onError: (error: any) => {
+                const status = error?.response?.status;
+                if (status === 409) {
+                    setErrors({ email: "This email is already registered. Please log in." });
+                } else if (status === 422) {
+                    setErrors({ email: "Please enter a valid email address." });
+                } else {
+                    setErrors({ email: "Failed to send OTP. Please try again." });
+                }
+            },
+        });
     };
 
-    // ── Step 2: OTP ───────────────────────────────────────────────────────────
+    // ── Step 2: Verify OTP ────────────────────────────────────────────────────
 
     const startResendTimer = () => {
         setResendTimer(30);
@@ -88,17 +109,33 @@ export default function SignupPage() {
         if (otpValue.length < 6)
             return setErrors({ otp: "Please enter the 6-digit OTP sent to your email ID." });
 
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1200));
-        setLoading(false);
-
-        if (otpValue !== "123456") {
-            return setErrors({ otp: "Invalid OTP. Please try again." });
-        }
-        setStep("password");
+        // POST /auth/verify-otp
+        verifyOtp({ email: form.email, otp: otpValue }, {
+            onSuccess: () => {
+                setStep("password");
+            },
+            onError: (error: any) => {
+                const status = error?.response?.status;
+                if (status === 422) {
+                    setErrors({ otp: "Invalid OTP. Please try again." });
+                } else if (status === 410) {
+                    setErrors({ otp: "OTP has expired. Please request a new one." });
+                } else {
+                    setErrors({ otp: "Failed to verify OTP. Please try again." });
+                }
+            },
+        });
     };
 
-    // ── Step 3: Password ──────────────────────────────────────────────────────
+    const handleResendOtp = () => {
+        // POST /auth/send-otp again
+        sendOtp(form.email, {
+            onSuccess: () => startResendTimer(),
+            onError: () => setErrors({ otp: "Failed to resend OTP. Please try again." }),
+        });
+    };
+
+    // ── Step 3: Create Account ────────────────────────────────────────────────
 
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -109,16 +146,39 @@ export default function SignupPage() {
             newErrors.confirmPassword = "Passwords do not match.";
         if (Object.keys(newErrors).length > 0) return setErrors(newErrors);
 
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1500));
-        setLoading(false);
-        setStep("success");
+        // POST /auth/signup
+        signup(
+            { email: form.email, password: form.password },
+            {
+                onSuccess: (data) => {
+                    // If backend returns tokens on signup — log user in directly
+                    if (data.access_token) {
+                        login(data.user, data.access_token, data.refresh_token);
+                        router.push("/registration"); // new user → registration
+                    } else {
+                        // Otherwise just show success and redirect to login
+                        setStep("success");
+                    }
+                },
+                onError: (error: any) => {
+                    const status = error?.response?.status;
+                    if (status === 409) {
+                        setErrors({ email: "Account already exists with this email." });
+                        setStep("details");
+                    } else {
+                        setErrors({ password: "Failed to create account. Please try again." });
+                    }
+                },
+            }
+        );
     };
 
     // ── Step indicator ────────────────────────────────────────────────────────
-
     const stepIndex: Record<SignupStep, number> = { details: 0, otp: 1, password: 2, success: 3 };
     const stepLabels = ["Details", "Verify", "Password"];
+
+    // Combined loading state across all mutations
+    const loading = sendingOtp || verifyingOtp || signingUp;
 
     return (
         <>
@@ -150,12 +210,6 @@ export default function SignupPage() {
                 {step === "details" && (
                     <form onSubmit={handleDetailsSubmit} noValidate className="flex flex-col gap-4">
                         <Field
-                            label="Username" name="username" placeholder="eg. jagdishK23"
-                            value={form.userName}
-                            onChange={(v) => { update("userName", v); clearError("userName"); }}
-                            error={errors.userName} required
-                        />
-                        <Field
                             label="Email ID" name="email" type="email" placeholder="eg. joe@gmail.com"
                             value={form.email}
                             onChange={(v) => { update("email", v); clearError("email"); }}
@@ -180,7 +234,7 @@ export default function SignupPage() {
                         <div className="flex items-center justify-between text-xs text-gray-500">
                             <button
                                 type="button"
-                                onClick={() => setStep("details")}
+                                onClick={() => { setStep("details"); setErrors({}); }}
                                 className="hover:text-gray-800 transition-colors"
                             >
                                 ← Change email
@@ -190,10 +244,11 @@ export default function SignupPage() {
                             ) : (
                                 <button
                                     type="button"
-                                    onClick={startResendTimer}
-                                    className="text-orange-500 font-medium hover:underline"
+                                    onClick={handleResendOtp}
+                                    disabled={sendingOtp}
+                                    className="text-orange-500 font-medium hover:underline disabled:opacity-50"
                                 >
-                                    Resend OTP
+                                    {sendingOtp ? "Sending..." : "Resend OTP"}
                                 </button>
                             )}
                         </div>
@@ -213,8 +268,7 @@ export default function SignupPage() {
                                 error={errors.password} required
                                 rightSlot={
                                     <button type="button" onClick={() => setShowPassword((p) => !p)}
-                                        className="text-xs text-gray-400 hover:text-gray-600 font-medium px-1"
-                                    >
+                                        className="text-xs text-gray-400 hover:text-gray-600 font-medium px-1">
                                         {showPassword ? "Hide" : "Show"}
                                     </button>
                                 }
@@ -231,8 +285,7 @@ export default function SignupPage() {
                             error={errors.confirmPassword} required
                             rightSlot={
                                 <button type="button" onClick={() => setShowConfirm((p) => !p)}
-                                    className="text-xs text-gray-400 hover:text-gray-600 font-medium px-1"
-                                >
+                                    className="text-xs text-gray-400 hover:text-gray-600 font-medium px-1">
                                     {showConfirm ? "Hide" : "Show"}
                                 </button>
                             }
