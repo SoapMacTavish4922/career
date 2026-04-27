@@ -1,7 +1,8 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useJob } from "@/lib/hooks/useJobs";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+
+import { useJobFromCache } from "@/lib/hooks/useJobs";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -91,13 +92,16 @@ function JobDetailSkeleton() {
 export default function JobDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const slug   = String(params.slug);
+    const slug = String(params.slug);
+    const searchParams = useSearchParams();
+    const id = searchParams.get("id") ?? "";
 
     // ── Axios + React Query ───────────────────────────────────────────────────
     // useJob calls GET /jobs/{slug} via axios
     // Bearer token attached automatically by request interceptor
     // Result cached by React Query — won't refetch on every render
-    const { data: job, isLoading, isError } = useJob(slug);
+
+    const { data: job, isLoading, isError } = useJobFromCache(id);
 
     // ── Loading state ─────────────────────────────────────────────────────────
     if (isLoading) return (
@@ -138,7 +142,7 @@ export default function JobDetailPage() {
             {/* ── Header Card ── */}
             <div className="bg-gradient-to-br from-[#006256] to-[#004d45] rounded-2xl p-7 flex flex-col gap-5">
                 <span className="w-fit text-xs font-bold uppercase tracking-widest bg-white/15 text-white/90 px-3 py-1 rounded-full">
-                    {job.jobType}
+                    {job.job_Type}
                 </span>
                 <h1 className="text-2xl font-bold text-white leading-snug">
                     {job.title}
@@ -150,11 +154,11 @@ export default function JobDetailPage() {
                     </span>
                     <span className="flex items-center gap-1.5 text-sm text-white/75">
                         <img src="/briefcase.svg" alt="experience" className="w-4 h-4" />
-                        {job.experience}
+                        {`${job.experience_required} Years`}
                     </span>
                     <span className="flex items-center gap-1.5 text-sm text-white/75">
                         <img src="/calendar4.svg" alt="posted" className="w-4 h-4" />
-                        Posted On: {job.postedOn}
+                        Posted On: {new Date(job.created_at).toLocaleDateString("en-IN")}
                     </span>
                 </div>
             </div>
@@ -169,26 +173,26 @@ export default function JobDetailPage() {
             <div className="bg-white border border-gray-200 rounded-2xl px-6 py-6 flex flex-col gap-7">
 
                 <Section title="Key Responsibilities">
-                    <BulletList items={job.responsibilities} />
+                    <BulletList items={job.responsibilities ?? []} />
                 </Section>
 
                 <Divider />
 
                 <Section title="Required Skills">
-                    <TagList items={job.skills} />
+                    <TagList items={job.skills ?? []} />
                 </Section>
 
                 <Divider />
 
                 <Section title="Qualifications">
-                    <BulletList items={job.qualifications} />
+                    <BulletList items={job.qualifications ?? []} />
                 </Section>
 
-                {job.certifications.length > 0 && (
+                {(job.certifications ?? []).length > 0 && (
                     <>
                         <Divider />
                         <Section title="Certifications">
-                            <BulletList items={job.certifications} />
+                            <BulletList items={job.certifications ?? []} />
                         </Section>
                     </>
                 )}
@@ -197,7 +201,8 @@ export default function JobDetailPage() {
             {/* ── Apply ── */}
             <div className="flex items-center gap-4 pb-4">
                 <button
-                    onClick={() => router.push(`/portal/search-jobs/${slug}/apply-now`)}
+                    // [slug]/page.tsx — Apply Now button
+                    onClick={() => router.push(`/portal/search-jobs/${params.slug}/apply-now?id=${job.id}`)}
                     className="bg-[#F26F24] hover:bg-orange-600 text-white text-sm font-bold px-10 py-3 rounded-xl transition-colors shadow-sm"
                 >
                     Apply Now

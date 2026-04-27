@@ -3,16 +3,24 @@
 import Image from "next/image";
 import { ReactNode, useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/lib/context/AuthContext";
+import { authService } from "@/lib/services/auth.services";
 
 export default function MainLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
+    const { user, logout } = useAuth();
 
     const collapsed = pathname.includes("/edit-details");
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+    // Compute initials from real user name
+    const initials = user?.name
+        ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+        : "?";
 
     const menuItems = [
         { label: "Search Jobs", path: "/portal/search-jobs", icon: "/briefcase.svg" },
@@ -32,10 +40,18 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleLogout = () => {
+    // ── Logout — calls API + clears context + cookies + redirects ─────────────
+    const handleLogout = async () => {
         setDropdownOpen(false);
         setMobileMenuOpen(false);
-        router.push("/login");
+        try {
+            await authService.logout(); // tells Laravel to invalidate token server side
+        } catch {
+            // even if API fails, clear local state anyway
+        } finally {
+            logout();               // clears cookies + auth context
+            router.push("/login");
+        }
     };
 
     const handleEditDetails = () => {
@@ -52,7 +68,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     return (
         <div className="flex min-h-screen bg-gray-100">
 
-            {/* DESKTOP SIDEBAR — hidden on mobile */}
+            {/* ── DESKTOP SIDEBAR ── */}
             <aside className={`group hidden lg:flex fixed left-0 top-2 h-[calc(100vh-1rem)] ml-2 bg-[#006256]
                 rounded-2xl text-white flex-col justify-between shadow-lg transition-all duration-300 z-40
                 ${collapsed ? "w-16 hover:w-55" : "w-55"}`}
@@ -113,13 +129,13 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 </div>
             </aside>
 
-            {/* RIGHT CONTENT */}
+            {/* ── RIGHT CONTENT ── */}
             <div className={`flex-1 flex flex-col transition-all duration-300 ${collapsed ? "lg:ml-20" : "lg:ml-64"}`}>
 
                 {/* ── Topbar ── */}
                 <header className="h-16 bg-gray-100 flex items-center justify-between lg:justify-end px-4 lg:px-6 border-b border-gray-200 sticky top-0 z-30">
 
-                    {/* ── Mobile left: Hamburger button ── */}
+                    {/* ── Mobile: Hamburger ── */}
                     <div className="lg:hidden relative" ref={mobileMenuRef}>
                         <button
                             onClick={() => setMobileMenuOpen((p) => !p)}
@@ -145,7 +161,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                                         return (
                                             <button key={item.label} onClick={() => handleNavigate(item.path)}
                                                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors
-                                                        ${isActive
+                                                    ${isActive
                                                         ? "bg-emerald-700 text-white font-semibold"
                                                         : "text-white/80 hover:bg-emerald-800 hover:text-white"}`}
                                             >
@@ -163,8 +179,13 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                     <div className="relative" ref={dropdownRef}>
                         <button onClick={() => setDropdownOpen((p) => !p)}
                             className="flex items-center gap-2.5 cursor-pointer group">
-                            <div className="w-9 h-9 rounded-full bg-[#006256] flex items-center justify-center text-white text-xs font-bold shrink-0 ring-2 ring-transparent group-hover:ring-[#006256]/30 transition-all overflow-hidden">
-                                JW
+                            {/* Avatar — shows profile photo if available, else initials */}
+                            <div className="w-9 h-9 rounded-full shrink-0 ring-2 ring-transparent group-hover:ring-[#006256]/30 transition-all overflow-hidden">
+                                <img
+                                    src={user?.profilePhoto ?? "/user.png"}
+                                    alt={user?.name ?? "Profile"}
+                                    className="w-full h-full object-cover rounded-full"
+                                />
                             </div>
                             <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -172,11 +193,13 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                             </svg>
                         </button>
 
+                        {/* Dropdown */}
                         {dropdownOpen && (
                             <div className="absolute right-0 top-12 w-52 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden z-50">
+                                {/* User info — from AuthContext */}
                                 <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                                    <p className="text-xs font-bold text-gray-800">Joe William</p>
-                                    <p className="text-xs text-gray-400 mt-0.5 truncate">joe.william@gmail.com</p>
+                                    <p className="text-xs font-bold text-gray-800">{user?.name ?? "—"}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5 truncate">{user?.email ?? "—"}</p>
                                 </div>
                                 <div className="py-1.5">
                                     <button onClick={() => { setDropdownOpen(false); router.push("/portal/profile"); }}

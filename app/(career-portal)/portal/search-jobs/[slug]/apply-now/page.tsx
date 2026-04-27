@@ -1,8 +1,8 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useJob, useApplyJob } from "@/lib/hooks/useJobs";
+import { useJobFromCache, useApplyJob } from "@/lib/hooks/useJobs";
 import { useProfile } from "@/lib/hooks/useUser";
 
 // ── Ticker ────────────────────────────────────────────────────────────────────
@@ -193,10 +193,12 @@ export default function ApplyPage() {
     const params = useParams();
     const router = useRouter();
     const slug = String(params.slug);
+    const searchParams = useSearchParams();
+    const id = searchParams.get("id") ?? "";
 
     // ── Fetch job details ─────────────────────────────────────────────────────
     // GET /jobs/{slug} — job info for the header card
-    const { data: job, isLoading: jobLoading, isError: jobError } = useJob(slug);
+    const { data: job, isLoading: jobLoading, isError: jobError } = useJobFromCache(id);
 
     // ── Fetch user profile ────────────────────────────────────────────────────
     // GET /user/profile — user info for the review modal and applicant summary
@@ -211,6 +213,7 @@ export default function ApplyPage() {
     const [confirmed, setConfirmed] = useState(false);
     const [confirmError, setConfirmError] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+
 
     // Show modal automatically on page load
     useEffect(() => {
@@ -305,13 +308,13 @@ export default function ApplyPage() {
                 {/* Job Summary Card */}
                 <div className="bg-gradient-to-br from-[#006256] to-[#004d45] rounded-2xl p-6 flex flex-col gap-4">
                     <span className="w-fit text-xs font-bold uppercase tracking-widest bg-white/15 text-white/90 px-3 py-1 rounded-full">
-                        {job.jobType}
+                        {job.job_type}
                     </span>
                     <h1 className="text-xl font-bold text-white leading-snug">{job.title}</h1>
                     <div className="flex flex-wrap gap-x-6 gap-y-1">
                         <span className="text-sm text-white/75">{job.location}</span>
-                        <span className="text-sm text-white/75">{job.experience}</span>
-                        <span className="text-sm text-white/75">Posted {job.postedOn}</span>
+                        <span className="text-sm text-white/75">{`${job.experience_required} Years`}</span>
+                        <span className="text-sm text-white/75">Posted {new Date(job.created_at).toLocaleDateString("en-IN")}</span>
                     </div>
                 </div>
 

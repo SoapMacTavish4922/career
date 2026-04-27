@@ -8,13 +8,14 @@ interface FieldProps {
     value: string;
     onChange: (v: string) => void;
     onBlur?: () => void;
+    onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
     error?: string;
     required?: boolean;
     rightSlot?: React.ReactNode;
 }
 
 export default function Field({
-    label, name, type = "text", placeholder, value, onChange, onBlur, error, required, rightSlot,
+    label, name, type = "text", placeholder, value, onChange, onBlur, onKeyDown, error, required, rightSlot,
 }: FieldProps) {
     return (
         <div className="flex flex-col gap-1">
@@ -27,8 +28,10 @@ export default function Field({
                     type={type}
                     placeholder={placeholder}
                     value={value}
+                    onKeyDown={onKeyDown}
                     onChange={(e) => onChange(e.target.value)}
                     onBlur={onBlur}
+
                     className={`w-full px-3 py-2.5 border rounded-lg text-xs outline-none transition-all duration-200
                         placeholder-gray-300 text-gray-800 focus:ring-2
                         ${error

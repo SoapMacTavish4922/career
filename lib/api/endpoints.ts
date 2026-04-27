@@ -6,17 +6,18 @@ export const ENDPOINTS = {
 
     auth: {
         login: "/login",
-        signup: "/signup",
+        signup: "/register",
         logout: "/logout",
         refresh: "/auth/refresh",
-        sendOtp: "/send-otp",
         verifyOtp: "/verify-otp",
-        resetPassword: "/reset-password",
+        forgotPassword: "/forgot-password",
+        verifyResetOtp: "/verify-forgot-otp",   // forgot password OTP
+        resetPassword: "/set-password",      // reset
         me: "/auth/me",
     },
 
     user: {
-        profile: "/user/profile",
+        profile: "/candidate/profile",
         update: "/user/profile/update",
         photo: "/user/profile/photo",
         password: "/user/profile/password",
@@ -24,14 +25,14 @@ export const ENDPOINTS = {
 
     jobs: {
         list: "/jobs",
-        detail: (slug: string) => `/jobs/${slug}`,
-        apply: (id: number) => `/jobs/${id}/apply`,
-        applied: "/jobs/applied",
+        detail: (id: string) => `/jobs/${id}`,  // ← GET /jobs/{job.id}
+        apply: (id: string) => `/jobs/${id}/apply`,
+        applied: "/my-applications",
         interviewSchedule: "/jobs/interviews",
     },
 
     registration: {
-        submit: "/registration/submit",
+        submit: "/candidate/basic-details",
         update: "/registration/update",
     },
 

@@ -1,19 +1,34 @@
 
 
 export interface Job {
-    id: number;
+    id: string;
     title: string;
-    location: string;
-    experience: string;
-    jobType: string;
     description: string;
+    location: string;
+    department: string;
+    job_type: string;
+    experience_required: number;
+    salary_min: string;
+    salary_max: string;
+    is_active: number;
+    created_at: string;
     skills: string[];
     qualifications: string[];
-    certifications: string[];
     responsibilities: string[];
-    postedOn: string;
+    certifications: string[];
 }
 
-export interface AppliedJob extends Job {
-    status: "In progress" | "Accepted" | "Rejected";
+export interface AppliedJob {
+    id: string;
+    user_id: string;
+    job_post_id: string;
+    status: string;
+    applied_at: string;
+    job: {
+        id: string;
+        title: string;
+        description: string;
+        location: string;
+        department: string;
+    };
 }

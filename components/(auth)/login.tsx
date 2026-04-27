@@ -75,15 +75,15 @@ export default function LoginPage() {
       // authService.login sends POST /auth/login via axios
       // Bearer token + refresh token saved to cookies automatically
       const data1 = await authService.login(form.email, form.password);
-      
-      console.log(data1);
+
+      console.log("Raw data:", data1);
 
       login(data1.user, data1.access_token, data1.refresh_token);
 
       // First time user (no profile) → registration form
       // Returning user → search jobs page
       if (!data1.user.is_profile_complete) {
-        router.push("/registration/forms");
+        router.push("/portal/search-jobs");
       } else {
         router.push("/portal/search-jobs");
       }

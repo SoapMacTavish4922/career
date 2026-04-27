@@ -5,12 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { isValidEmail, isStrongPassword } from "@/lib/validators/auth";
 import { AuthStep, ForgotPasswordFormState, AuthErrors } from "@/lib/types/auth";
-import { useSendForgotPasswordOtp, useVerifyOtp, useResetPassword } from "@/lib/hooks/useAuth";
+import { useSendForgotPasswordOtp, useVerifyResetOtp, useResetPassword } from "@/lib/hooks/useAuth";
 import Field from "@/components/ui/Fields";
 import SubmitButton from "@/components/ui/SubmitButton";
 import PasswordStrength from "@/components/ui/PasswordStrength";
 import OtpInput from "@/components/ui/OtpInput";
 import StepIndicator from "@/components/ui/StepIndicator";
+import { log } from "console";
+
 
 const stepIndex: Record<AuthStep, number> = { email: 0, otp: 1, password: 2, success: 3 };
 
@@ -18,8 +20,9 @@ export default function ForgotPasswordPage() {
 
     // ── React Query mutations ─────────────────────────────────────────────────
     const { mutate: sendOtp, isPending: sendingOtp } = useSendForgotPasswordOtp();
-    const { mutate: verifyOtp, isPending: verifyingOtp } = useVerifyOtp();
+    const { mutate: verifyOtp, isPending: verifyingOtp } = useVerifyResetOtp();
     const { mutate: resetPassword, isPending: resettingPassword } = useResetPassword();
+    const [resetToken, setResetToken] = useState("");
 
     const [step, setStep] = useState<AuthStep>("email");
     const [form, setForm] = useState<ForgotPasswordFormState>({
@@ -111,7 +114,8 @@ export default function ForgotPasswordPage() {
 
         // POST /auth/verify-otp
         verifyOtp({ email: form.email, otp: otpValue }, {
-            onSuccess: () => {
+            onSuccess: (data) => {
+                setResetToken(data.data.reset_token); // ← save token from response
                 setStep("password");
             },
             onError: (error: any) => {
@@ -150,12 +154,14 @@ export default function ForgotPasswordPage() {
         resetPassword(
             {
                 email: form.email,
-                otp: form.otp.join(""),
                 password: form.password,
                 password_confirmation: form.confirmPassword,
+                reset_token: resetToken,
             },
             {
-                onSuccess: () => {
+                onSuccess: (data) => {
+                    console.log("verify-forgot-otp response:", data); // ← check this
+                    setResetToken(data.reset_token);
                     setStep("success");
                 },
                 onError: (error: any) => {

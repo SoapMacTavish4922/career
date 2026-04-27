@@ -10,6 +10,9 @@ interface Props {
     formData?: AllFormData;
     onBack?: () => void;
     onSubmitSuccess?: () => void;
+    onSubmit?: (data: AllFormData) => void;  // ← add
+    isLoading?: boolean;                      // ← add
+    isEditMode?: boolean;                     // ← add
 }
 
 const ReviewRow = ({ label, value }: { label: string; value?: string }) => {
@@ -42,12 +45,13 @@ const formatAddress = (addr?: AllFormData["permanentAddress"]) => {
 };
 
 function ReviewModal({
-    formData, onClose, onConfirm, loading,
+    formData, onClose, onConfirm, loading, isEditMode,
 }: {
     formData: AllFormData;
     onClose: () => void;
     onConfirm: () => void;
     loading: boolean;
+    isEditMode?: boolean;
 }) {
     const fullName = [formData.firstName, formData.middleName, formData.lastName]
         .filter(Boolean).join(" ");
@@ -192,16 +196,14 @@ function ReviewModal({
                         disabled={loading}
                         className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                     >
-                        {loading ? (
+                        {loading ? (                                    // ← replace this block
                             <>
                                 <svg className="animate-spin" width="15" height="15" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
                                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                                 </svg>
                                 Submitting…
                             </>
-                        ) : (
-                            "Confirm & Submit"
-                        )}
+                        ) : isEditMode ? "Confirm & Update" : "Confirm & Submit"}  {/* ← with this */}
                     </button>
                 </div>
             </div>
@@ -216,26 +218,19 @@ export default function DeclareAndSubmit({
     formData = {},
     onBack,
     onSubmitSuccess,
+    onSubmit,
+    isLoading,
+    isEditMode,
 }: Props) {
     const router = useRouter();   // ✅ always at top level — never inside a condition
 
     const [declared, setDeclared] = useState(false);
     const [declError, setDeclError] = useState("");
     const [showModal, setShowModal] = useState(false);
-    const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
 
     const fullName = [formData.firstName, formData.middleName, formData.lastName]
         .filter(Boolean).join(" ");
-
-    // ✅ always at top level — runs only when submitted becomes true
-    useEffect(() => {
-        if (!submitted) return;
-        const timer = setTimeout(() => {
-            router.push("/portal/search-jobs");
-        }, 3000);
-        return () => clearTimeout(timer);
-    }, [submitted]);
 
     const handleReviewClick = () => {
         if (!declared) {
@@ -246,23 +241,13 @@ export default function DeclareAndSubmit({
         setShowModal(true);
     };
 
-    const handleFinalSubmit = async () => {
-        setLoading(true);
-        try {
-            // await fetch("/api/submit", {
-            //     method: "POST",
-            //     headers: { "Content-Type": "application/json" },
-            //     body: JSON.stringify(formData),
-            // });
-            await new Promise((r) => setTimeout(r, 1800));
-            setShowModal(false);
-            setSubmitted(true);
-            onSubmitSuccess?.();
-        } catch (err) {
-            console.error("Submission error:", err);
-        } finally {
-            setLoading(false);
+    const handleFinalSubmit = () => {
+        setShowModal(false);
+        if (onSubmit) {
+            // Use parent handler — layout handles the API call
+            onSubmit(formData as AllFormData);
         }
+        onSubmitSuccess?.();
     };
 
     /* ── Success screen ── */
@@ -420,8 +405,12 @@ export default function DeclareAndSubmit({
                     formData={formData}
                     onClose={() => setShowModal(false)}
                     onConfirm={handleFinalSubmit}
-                    loading={loading}
+                    loading={isLoading ?? false}
+                    isEditMode={isEditMode}
+
+
                 />
+
             )}
         </div>
     );

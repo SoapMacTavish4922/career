@@ -260,7 +260,11 @@ const EducationCard = ({
 };
 
 export default function EducationalDetails({ onNext, onBack, defaultValues }: Props) {
-    const [entries, setEntries] = useState<EducationBlock[]>(defaultValues?.education ?? [emptyEducation()]);
+    const [entries, setEntries] = useState<EducationBlock[]>(
+        defaultValues?.education?.length
+            ? defaultValues.education
+            : [emptyEducation()]
+    );
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
     // ── Validate ──

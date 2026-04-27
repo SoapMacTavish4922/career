@@ -257,7 +257,11 @@ const ExperienceCard = ({
 };
 
 export default function ExperienceDetails({ onNext, onBack, defaultValues }: Props) {
-    const [entries, setEntries] = useState<ExperienceBlock[]>(defaultValues?.experience ?? [emptyExperience()]);
+    const [entries, setEntries] = useState<ExperienceBlock[]>(
+        defaultValues?.experience?.length
+            ? defaultValues.experience
+            : [emptyExperience()]
+    );
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
     // ── Validate ──

@@ -1,14 +1,14 @@
 import { useMutation } from "@tanstack/react-query";
 import { authService } from "@/lib/services/auth.services";
 
-// Signup page step 1 — sends OTP to email
-export function useSendOtp() {
+export function useSignup() {
     return useMutation({
-        mutationFn: (email: string) => authService.sendOtp(email),
+        mutationFn: (data: { name: string; email: string; password: string }) =>
+            authService.signup(data),
     });
 }
 
-// Signup page step 2 + forgot password step 2 — verifies OTP
+// Shared between signup and forgot password
 export function useVerifyOtp() {
     return useMutation({
         mutationFn: ({ email, otp }: { email: string; otp: string }) =>
@@ -16,21 +16,21 @@ export function useVerifyOtp() {
     });
 }
 
-// Signup page step 3 — creates account
-export function useSignup() {
-    return useMutation({
-        mutationFn: authService.signup,
-    });
-}
-
 // Forgot password step 1 — sends reset OTP
 export function useSendForgotPasswordOtp() {
     return useMutation({
-        mutationFn: (email: string) => authService.sendForgotPasswordOtp(email),
+        mutationFn: (email: string) => authService.forgotPassword(email),
     });
 }
 
-// Forgot password step 3 — resets password
+export function useVerifyResetOtp() {
+    return useMutation({
+        mutationFn: ({ email, otp }: { email: string; otp: string }) =>
+            authService.verifyResetOtp(email, otp),
+    });
+}
+
+// For forgot password step 3
 export function useResetPassword() {
     return useMutation({
         mutationFn: authService.resetPassword,

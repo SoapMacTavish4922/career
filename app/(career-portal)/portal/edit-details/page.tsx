@@ -1,100 +1,47 @@
+"use client";
+
+import { useProfile } from "@/lib/hooks/useUser";
 import RegistrationLayout from "@/app/(career-portal)/registration/layout";
 
-const dummyUser = {
-    firstName: "Raj",
-    middleName: "Kumar",
-    lastName: "Sharma",
-    email: "raj.sharma@gmail.com",
-    altEmail: "raj123@gmail.com",
-    phone: "9876543210",
-    altPhone: "9123456780",
-    gender: "Male",
-    dob: "1998-08-15",
-
-    permanentAddress: {
-        line1: "12, Green Park Colony",
-        line2: "Near City Mall",
-        line3: "Sector 5",
-        city: "Mumbai",
-        state: "Maharashtra",
-        country: "India",
-        pinCode: "400001",
-    },
-    currentAddress: {
-        line1: "45, Andheri West",
-        line2: "Lokhandwala Complex",
-        line3: "",
-        city: "Mumbai",
-        state: "Maharashtra",
-        country: "India",
-        pinCode: "400053",
-    },
-    sameAsPermanent: false,
-
-    education: [
-        {
-            school: "St. Xavier's College",
-            degree: "bachelors",
-            fieldOfStudy: "Computer Science",
-            resultType: "cgpa",
-            gpa: "8.5",
-            from: "2016-07",
-            to: "2020-05",
-        },
-        {
-            school: "Delhi Public School",
-            degree: "12th",
-            fieldOfStudy: "Science",
-            resultType: "percentage",
-            gpa: "88",
-            from: "2014-06",
-            to: "2016-03",
-        },
-    ],
-
-    experience: [
-        {
-            experienceType: "experienced",
-            title: "Frontend Developer",
-            company: "TechCorp Solutions",
-            location: "Mumbai",
-            from: "2020-07",
-            to: "2023-12",
-            current: "800000",
-            notice: "30",
-        },
-    ],
-
-    certifications: [
-        {
-            certification: "Cloud Computing",
-            institute: "NPTEL",
-            accreditedWith: "NAAC",
-            yearOfPassing: "2021",
-            marks: "85",
-            certificateFile: null,
-        },
-    ],
-};
-
 export default function EditDetailsPage() {
+
+    const { data: profile, isLoading, isError } = useProfile();
+
+    if (isLoading) return (
+        <div className="flex items-center justify-center min-h-screen">
+            <p className="text-sm text-gray-500">Loading your details...</p>
+        </div>
+    );
+
+    if (isError) return (
+        <div className="flex items-center justify-center min-h-screen">
+            <p className="text-sm text-red-500">Failed to load details. Please refresh.</p>
+        </div>
+    );
+
+    // Map API response to form shape
+    // Update field names to match exactly what Laravel returns
     const defaultValues = {
-        firstName: dummyUser.firstName,
-        middleName: dummyUser.middleName,
-        lastName: dummyUser.lastName,
-        email: dummyUser.email,
-        altEmail: dummyUser.altEmail,
-        phone: dummyUser.phone,
-        altPhone: dummyUser.altPhone,
-        gender: dummyUser.gender,
-        dob: dummyUser.dob,
-        permanentAddress: dummyUser.permanentAddress,
-        currentAddress: dummyUser.currentAddress,
-        sameAsPermanent: dummyUser.sameAsPermanent,
-        education: dummyUser.education,
-        experience: dummyUser.experience,
-        certifications: dummyUser.certifications,
+        firstName: profile?.firstName ?? "",
+        middleName: profile?.middleName ?? "",
+        lastName: profile?.lastName ?? "",
+        email: profile?.email ?? "",
+        altEmail: profile?.altEmail ?? "",
+        phone: profile?.phone ?? "",
+        altPhone: profile?.altPhone ?? "",
+        gender: profile?.gender ?? "",
+        dob: profile?.dob ?? "",
+        permanentAddress: profile?.permanentAddress ?? {
+            line1: "", line2: "", line3: "", city: "", state: "", country: "", pinCode: "",
+        },
+        currentAddress: profile?.currentAddress ?? {
+            line1: "", line2: "", line3: "", city: "", state: "", country: "", pinCode: "",
+        },
+        sameAsPermanent: profile?.sameAsPermanent ?? false,
+        education: profile?.education ?? [],
+        experience: profile?.experience ?? [],
+        certifications: profile?.certifications ?? [],
     };
 
-    return <RegistrationLayout defaultValues={defaultValues} />;
+    return <RegistrationLayout defaultValues={defaultValues} isEditMode={true} />;
 }

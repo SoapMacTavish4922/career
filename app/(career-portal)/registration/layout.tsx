@@ -8,6 +8,8 @@ import ExperienceDetails from "@/components/registration/experienceDetails";
 import DeclareAndSubmit from "@/components/registration/submitDetails";
 import { AllFormData } from "@/lib/types/registration";
 import { saveFormProgress, loadFormProgress, clearFormProgress } from "@/lib/utils/formProgress";
+import { useRouter } from "next/navigation";
+import { useSubmitRegistration, useUpdateRegistration } from "@/lib/hooks/useUser";
 
 const steps = [
     { id: 1, label: "Basic details" },
@@ -19,13 +21,20 @@ const steps = [
 
 interface Props {
     defaultValues?: AllFormData;
+    isEditMode?: boolean;
+
 }
 
-export default function RegistrationLayout({ defaultValues }: Props) {
+export default function RegistrationLayout({ defaultValues, isEditMode = false, }: Props) {
+
     const [currentStep, setCurrentStep] = useState(1);
+    const router = useRouter();
+    const { mutate: submitRegistration, isPending: submitting } = useSubmitRegistration();
+    const { mutate: updateRegistration, isPending: updating } = useUpdateRegistration();
     const [formData, setFormData] = useState<AllFormData>(defaultValues ?? {});
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedStep, setSavedStep] = useState(1);
+
 
     // ── On mount: check localStorage for saved progress ───────────────────────
     // Skip in edit mode (defaultValues passed from edit-details page)
@@ -71,6 +80,28 @@ export default function RegistrationLayout({ defaultValues }: Props) {
     const goBack = () => {
         setCurrentStep((s) => Math.max(s - 1, 1));
     };
+    const handleFinalSubmit = (data: AllFormData) => {
+        if (isEditMode) {
+            updateRegistration(data, {
+                onSuccess: () => {
+                    router.push("/portal/profile");
+                },
+                onError: () => {
+                    alert("Failed to update. Please try again.");
+                },
+            });
+        } else {
+            submitRegistration(data, {
+                onSuccess: () => {
+                    clearFormProgress();
+                    router.push("/portal/search-jobs");
+                },
+                onError: () => {
+                    alert("Failed to submit. Please try again.");
+                },
+            });
+        }
+    };
 
     const renderStep = () => {
         switch (currentStep) {
@@ -78,7 +109,15 @@ export default function RegistrationLayout({ defaultValues }: Props) {
             case 2: return <AddressDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
             case 3: return <EducationalDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
             case 4: return <ExperienceDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
-            case 5: return <DeclareAndSubmit formData={formData} onBack={goBack} />;
+            case 5: return (
+                <DeclareAndSubmit
+                    formData={formData}
+                    onBack={goBack}
+                    onSubmit={handleFinalSubmit}
+                    isLoading={submitting || updating}
+                    isEditMode={isEditMode}
+                />
+            );
             // Note: call clearFormProgress() inside DeclareAndSubmit after successful API submission
             default: return null;
         }

@@ -30,7 +30,12 @@ export function useJob(slug: string) {
 export function useAppliedJobs() {
     return useQuery({
         queryKey: jobKeys.applied,
-        queryFn: jobsService.getApplied,
+        queryFn: async () => {
+            console.log("Fetching applied jobs..."); // ← add this
+            const res = await jobsService.getApplied();
+            console.log("Response:", res);           // ← and this
+            return res;
+        },
     });
 }
 
@@ -46,9 +51,26 @@ export function useInterviews() {
 export function useApplyJob() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (jobId: number) => jobsService.apply(jobId),
+        mutationFn: (jobId: string) => jobsService.apply(jobId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: jobKeys.applied });
         },
     });
+}
+export function useJobFromCache(id: string) {
+    const queryClient = useQueryClient();
+    const cachedData = queryClient.getQueriesData({ queryKey: ["jobs", "list"] });
+
+    let cachedJob = null;
+    for (const [, data] of cachedData) {
+        const jobs = (data as any)?.data ?? (data as any) ?? [];
+        const found = jobs.find((j: any) => j.id === id); // ← match by id
+        if (found) { cachedJob = found; break; }
+    }
+
+    const apiResult = useJob(id); // ← passes id to GET /jobs/{id}
+
+    return cachedJob
+        ? { data: cachedJob, isLoading: false, isError: false }
+        : apiResult;
 }

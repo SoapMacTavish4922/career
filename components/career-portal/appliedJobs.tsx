@@ -2,53 +2,10 @@
 
 import Image from "next/image";
 import { useAppliedJobs } from "@/lib/hooks/useJobs";
-import { AppliedJob } from "@/lib/types/job";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 // Update these fields to match whatever your Laravel API actually returns
-type Job = {
-    id: number;
-    title: string;
-    status: "In progress" | "Accepted" | "Rejected";
-};
 
-// ── Status config ─────────────────────────────────────────────────────────────
-const STATUS_CONFIG = {
-    "In progress": {
-        icon: "/processing.svg",
-        alt: "In Progress",
-        textColor: "text-orange-500",
-        bgColor: "bg-orange-50",
-        borderColor: "border-orange-400",
-    },
-    "Accepted": {
-        icon: "/checked.svg",
-        alt: "Accepted",
-        textColor: "text-emerald-600",
-        bgColor: "bg-emerald-50",
-        borderColor: "border-emerald-400",
-    },
-    "Rejected": {
-        icon: "/reject.svg",
-        alt: "Rejected",
-        textColor: "text-red-500",
-        bgColor: "bg-red-50",
-        borderColor: "border-red-300",
-    },
-} as const;
-
-// ── Status Badge ──────────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: Job["status"] }) {
-    const config = STATUS_CONFIG[status];
-    return (
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${config.bgColor}`}>
-            <Image src={config.icon} alt={config.alt} width={14} height={14} />
-            <span className={`text-xs font-semibold ${config.textColor}`}>
-                {status}
-            </span>
-        </div>
-    );
-}
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function AppliedJobsSkeleton() {
@@ -97,7 +54,7 @@ export default function AppliedJobs() {
     // ── Parse response ────────────────────────────────────────────────────────
     // Laravel paginated response shape: { data: Job[], meta: { total, ... } }
     // If your Laravel returns a plain array instead, change to: data ?? []
-    const jobs = (data?.data ?? []) as AppliedJob[];
+    const jobs = (data ?? []) as any[];
 
     // ── Loading state ─────────────────────────────────────────────────────────
     if (isLoading) return <AppliedJobsSkeleton />;
@@ -132,18 +89,27 @@ export default function AppliedJobs() {
             {jobs.length === 0 && <EmptyState />}
 
             {/* ── Job cards ── */}
-            {jobs.map((job) => {
-                const config = STATUS_CONFIG[job.status];
+            {jobs.map((item) => {
                 return (
                     <div
-                        key={job.id}
-                        className={`border ${config.borderColor} rounded-2xl p-5 flex items-center justify-between bg-white gap-4 shadow-sm`}
+                        key={item.id}
+                        className="border border-orange-400 rounded-2xl p-5 flex items-center justify-between bg-white gap-4 shadow-sm"
                     >
-                        <h2 className="text-sm font-semibold text-gray-800 leading-snug flex-1">
-                            {job.title}
-                        </h2>
+                        <div className="flex flex-col gap-1 flex-1">
+                            <h2 className="text-sm font-semibold text-gray-800 leading-snug">
+                                {item.job.title}          {/* ← nested inside job object */}
+                            </h2>
+                            <p className="text-xs text-gray-400">{item.job.location}</p>
+                        </div>
                         <div className="shrink-0">
-                            <StatusBadge status={job.status} />
+                            <span className={`text-xs font-semibold px-3 py-1.5 rounded-full capitalize
+                                ${item.status === "applied" ? "bg-orange-50 text-orange-500" : ""}
+                                ${item.status === "shortlisted" ? "bg-blue-50 text-blue-500" : ""}
+                                ${item.status === "rejected" ? "bg-red-50 text-red-500" : ""}
+                                ${item.status === "hired" ? "bg-emerald-50 text-emerald-600" : ""}
+                                `}>
+                                {item.status}
+                            </span>
                         </div>
                     </div>
                 );
