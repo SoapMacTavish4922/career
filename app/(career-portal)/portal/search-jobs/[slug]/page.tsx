@@ -103,6 +103,10 @@ export default function JobDetailPage() {
 
     const { data: job, isLoading, isError } = useJobFromCache(id);
 
+    console.log("Job data:", job);
+    console.log("isLoading:", isLoading);
+    console.log("isError:", isError);
+
     // ── Loading state ─────────────────────────────────────────────────────────
     if (isLoading) return (
         <div className="p-6">
@@ -173,7 +177,11 @@ export default function JobDetailPage() {
             <div className="bg-white border border-gray-200 rounded-2xl px-6 py-6 flex flex-col gap-7">
 
                 <Section title="Key Responsibilities">
-                    <BulletList items={job.responsibilities ?? []} />
+                    <BulletList items={
+                        Array.isArray(job.responsibilities)
+                            ? job.responsibilities
+                            : job.responsibilities?.split(",").map((s: string) => s.trim()) ?? []
+                    } />
                 </Section>
 
                 <Divider />
@@ -185,7 +193,11 @@ export default function JobDetailPage() {
                 <Divider />
 
                 <Section title="Qualifications">
-                    <BulletList items={job.qualifications ?? []} />
+                    <BulletList items={
+                        Array.isArray(job.qualifications ?? job.qualification)
+                            ? (job.qualifications ?? job.qualification)
+                            : (job.qualifications ?? job.qualification)?.split(",").map((s: string) => s.trim()) ?? []
+                    } />
                 </Section>
 
                 {(job.certifications ?? []).length > 0 && (

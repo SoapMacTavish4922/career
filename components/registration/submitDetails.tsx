@@ -10,9 +10,9 @@ interface Props {
     formData?: AllFormData;
     onBack?: () => void;
     onSubmitSuccess?: () => void;
-    onSubmit?: (data: AllFormData) => void;  // ← add
-    isLoading?: boolean;                      // ← add
-    isEditMode?: boolean;                     // ← add
+    onSubmit?: (data: AllFormData) => void;  
+    isLoading?: boolean;                     
+    isEditMode?: boolean;                    
 }
 
 const ReviewRow = ({ label, value }: { label: string; value?: string }) => {
@@ -143,7 +143,7 @@ function ReviewModal({
                                             <ReviewRow label="Location" value={exp.location} />
                                             <ReviewRow label="From" value={exp.from} />
                                             <ReviewRow label="To" value={exp.to} />
-                                            <ReviewRow label="Current CTC" value={exp.current ? `₹ ${exp.current}` : undefined} />
+                                            <ReviewRow label="Current CTC" value={exp.currentctc ? `₹ ${exp.currentctc}` : undefined} />
                                             <ReviewRow label="Notice Period" value={exp.notice} />
                                         </>
                                     )}
@@ -244,7 +244,6 @@ export default function DeclareAndSubmit({
     const handleFinalSubmit = () => {
         setShowModal(false);
         if (onSubmit) {
-            // Use parent handler — layout handles the API call
             onSubmit(formData as AllFormData);
         }
         onSubmitSuccess?.();

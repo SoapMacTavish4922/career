@@ -32,8 +32,10 @@ export const ENDPOINTS = {
     },
 
     registration: {
-        submit: "/candidate/basic-details",
-        update: "/registration/update",
+        basicDetails: "/candidate/basic-details",   
+        education: "/education",        
+        experience: "/employment",      
+        update: "/update",
     },
 
     faqs: {

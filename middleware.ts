@@ -24,9 +24,9 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    // if (token && !isProfileComplete && isProtected) {
-    //     return NextResponse.redirect(new URL("/registration", request.url));
-    // }
+    if (token && !isProfileComplete && isProtected) {
+        return NextResponse.redirect(new URL("/registration/forms", request.url));
+    }
 
     if (token && isProfileComplete && isRegistration) {
         return NextResponse.redirect(new URL("/portal/search-jobs", request.url));

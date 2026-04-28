@@ -335,7 +335,7 @@ export default function EducationalDetails({ onNext, onBack, defaultValues }: Pr
         <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-1">Enter education details</h2>
             <p className="text-sm text-gray-500 mb-6">
-                Enter your current and permanent address details here
+                Please list your highest level of education first, followed by the rest in descending order
             </p>
 
             {/* Education Cards */}

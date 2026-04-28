@@ -20,11 +20,13 @@ export interface EducationBlock {
 export interface ExperienceBlock {
     experienceType: string;
     title: string;
+    designation?: string;
     company: string;
     location: string;
     from: string;
     to: string;
-    current: string;
+    isCurrentJob?: boolean;
+    currentctc: string;
     notice: string;
 }
 

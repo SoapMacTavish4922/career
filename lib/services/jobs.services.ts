@@ -26,6 +26,8 @@ export const jobsService = {
 
     getBySlug: async (slug: string): Promise<Job> => {
         const res = await api.get(ENDPOINTS.jobs.detail(slug));
+        console.log(res);
+        
         return res.data;
     },
 

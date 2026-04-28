@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
+import { allowOnlyLetters, allowOnlyNumbers, allowAddressChars } from "@/lib/utils/keyboardHelpers";
 import { AddressBlock } from "@/lib/types/registration";
 
 
@@ -94,6 +94,7 @@ const AddressSection = ({
         maxLength={200}
         showCharCount={true}
         disabled={disabled}
+        onKeyDown={allowAddressChars}
       />
     </div>
 

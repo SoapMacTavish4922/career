@@ -15,7 +15,7 @@ export const authService = {
             id: data.id,
             name: data.name,
             email: data.email,
-            is_profile_complete: data.is_profile_complete,
+            is_profile_complete: data.is_profile_completed,
             profilePhoto: data.profile_photo ?? undefined,
         };
 

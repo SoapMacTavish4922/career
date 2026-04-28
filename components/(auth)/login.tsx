@@ -76,7 +76,6 @@ export default function LoginPage() {
       // Bearer token + refresh token saved to cookies automatically
       const data1 = await authService.login(form.email, form.password);
 
-      console.log("Raw data:", data1);
 
       login(data1.user, data1.access_token, data1.refresh_token);
 

@@ -257,7 +257,7 @@ export default function ApplyPage() {
         );
     }
 
-    const user = profile ?? {};
+    const user = profile ?? {} as any;
 
     // ── Success Screen ────────────────────────────────────────────────────────
     if (submitted) {

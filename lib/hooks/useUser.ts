@@ -57,9 +57,11 @@ export function useUpdatePassword() {
 // First time registration submit — marks profile as complete
 export function useSubmitRegistration() {
     const { user, setUser } = useAuth();
+
     return useMutation({
         mutationFn: userService.submitRegistration,
         onSuccess: () => {
+            // Mark profile as complete in context + cookie
             if (user) {
                 const updatedUser = { ...user, is_profile_complete: true };
                 setUser(updatedUser);
@@ -68,6 +70,16 @@ export function useSubmitRegistration() {
                     sameSite: "Lax",
                     secure: process.env.NODE_ENV === "production",
                 });
+            }
+        },
+        onError: (error: any) => {
+            const status = error?.response?.status;
+            if (status === 422) {
+                console.error("Validation failed:", error?.response?.data?.errors);
+            } else if (status === 401) {
+                console.error("Unauthorized — token expired");
+            } else {
+                console.error("Registration failed:", error?.message);
             }
         },
     });
