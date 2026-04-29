@@ -42,6 +42,7 @@ export function useUpdatePhoto() {
                     secure: process.env.NODE_ENV === "production",
                 });
             }
+
             queryClient.invalidateQueries({ queryKey: userKeys.profile });
         },
     });
@@ -60,10 +61,15 @@ export function useSubmitRegistration() {
 
     return useMutation({
         mutationFn: userService.submitRegistration,
-        onSuccess: () => {
-            // Mark profile as complete in context + cookie
+        onSuccess: async () => {
+            // Fetch updated profile to get photo URL
+            const profile = await userService.getProfile();
             if (user) {
-                const updatedUser = { ...user, is_profile_complete: true };
+                const updatedUser = {
+                    ...user,
+                    is_profile_complete: true,
+                    profilePhoto: profile?.photo_url ?? undefined,
+                };
                 setUser(updatedUser);
                 Cookies.set("user_info", JSON.stringify(updatedUser), {
                     expires: 7,
@@ -73,14 +79,7 @@ export function useSubmitRegistration() {
             }
         },
         onError: (error: any) => {
-            const status = error?.response?.status;
-            if (status === 422) {
-                console.error("Validation failed:", error?.response?.data?.errors);
-            } else if (status === 401) {
-                console.error("Unauthorized — token expired");
-            } else {
-                console.error("Registration failed:", error?.message);
-            }
+            console.error("Registration failed:", error?.response?.data);
         },
     });
 }

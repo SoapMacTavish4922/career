@@ -19,8 +19,6 @@ export default function EditDetailsPage() {
         </div>
     );
 
-    // Map API response to form shape
-    // Update field names to match exactly what Laravel returns
     const defaultValues = {
         firstName: profile?.firstName ?? "",
         middleName: profile?.middleName ?? "",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/context/AuthContext";
 import BasicDetails from "@/components/registration/basicDetails";
 import AddressDetails from "@/components/registration/addressDetails";
 import EducationalDetails from "@/components/registration/educationalDetails";
@@ -34,6 +35,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
     const [formData, setFormData] = useState<AllFormData>(defaultValues ?? {});
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedStep, setSavedStep] = useState(1);
+    const { user } = useAuth();
 
 
     // ── On mount: check localStorage for saved progress ───────────────────────
@@ -105,7 +107,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
 
     const renderStep = () => {
         switch (currentStep) {
-            case 1: return <BasicDetails onNext={goNext} defaultValues={formData} />;
+            case 1: return <BasicDetails onNext={goNext} defaultValues={formData} lockedEmail={user?.email ?? ""} lockedName={user?.name  ?? ""} />;
             case 2: return <AddressDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
             case 3: return <EducationalDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
             case 4: return <ExperienceDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;

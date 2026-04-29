@@ -5,8 +5,9 @@ import { useState, useRef } from "react";
 import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
 
 type FormData = {
-    firstName: string;
-    lastName: string;
+    name: string;
+    fatherName?: string;
+    motherName?: string;
     email: string;
     altEmail?: string;
     phone: string;
@@ -19,7 +20,9 @@ type FormData = {
 
 interface Props {
     onNext: (data?: any) => void;
-    defaultValues?: Partial<FormData>;
+    defaultValues?: any;
+    lockedEmail?: string;
+    lockedName?: string;
 }
 
 const ErrorText = ({ error }: { error?: any }) => {
@@ -123,16 +126,17 @@ function ProfilePhotoUpload({
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function BasicDetails({ onNext, defaultValues }: Props) {
+export default function BasicDetails({ onNext, defaultValues, lockedEmail, lockedName }: Props) {
     const [photo, setPhoto] = useState<File | null>(null);
     const [photoError, setPhotoError] = useState("");
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-    } = useForm<FormData>({
-        defaultValues: defaultValues ?? {},
+    const { register, handleSubmit, formState: { errors }, } = useForm<FormData>({
+        defaultValues: defaultValues ?? {
+
+            ...(defaultValues ?? {}),
+            email: lockedEmail ?? defaultValues?.email ?? "",
+            name: lockedName?.split(" ")[0] ?? defaultValues?.name ?? "",
+        },
     });
 
     const onSubmit = (data: FormData) => {
@@ -170,99 +174,62 @@ export default function BasicDetails({ onNext, defaultValues }: Props) {
 
                 <div className="h-px bg-gray-100" />
 
-                {/* Row 1: First Name + Last Name */}
-                <div className="flex gap-4">
-                    <div className="flex-1 flex flex-col gap-1">
-                        <label className="text-sm text-gray-700">
-                            First Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Raj"
-                            {...register("firstName", {
-                                required: "First name is required",
+                {/* Name — locked from signup */}
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm text-gray-700">
+                        Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="eg. Raj Sharma"
+                        readOnly={!!lockedName}
+                        {...register("name", {
+                            required: "Name is required",
+                            minLength: { value: 2, message: "Must be at least 2 characters" },
+                            maxLength: { value: 60, message: "Must be under 60 characters" },
+                            pattern: {
+                                value: /^[A-Za-z\s]+$/,
+                                message: "Only letters allowed",
+                            },
+                        })}
+                        onKeyDown={allowOnlyLetters}
+                        className={`${inputClass(!!errors.name)} ${lockedName ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                    />
+                    <ErrorText error={errors.name} />
+                    {lockedName && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Name cannot be changed
+                        </p>
+                    )}
+                </div>
 
-                                minLength: {
-                                    value: 2,
-                                    message: "Must be at least 2 characters",
-                                },
+                {/* Father's Name — optional */}
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm text-gray-700">Father's Name</label>
+                    <input
+                        type="text"
+                        placeholder="eg. Ramesh Sharma"
+                        {...register("fatherName")}
+                        onKeyDown={allowOnlyLetters}
+                        maxLength={60}
+                        className={inputClass(false)}
+                    />
+                </div>
 
-                                maxLength: {
-                                    value: 30,
-                                    message: "Must be under 30 characters",
-                                },
-
-                                pattern: {
-                                    value: /^[A-Za-z]+$/,
-                                    message: "Only letters allowed",
-                                },
-
-                                validate: {
-                                    noSpaces: (value: string) =>
-                                        value.trim() === value || "No leading or trailing spaces",
-
-                                    onlyLetters: (value: string) =>
-                                        /^[A-Za-z]+$/.test(value) || "Only letters allowed",
-                                },
-
-                                setValueAs: (value: string) =>
-                                    (value || "")
-                                        .trim()
-                                        .replace(/\b\w/g, (char: string) => char.toUpperCase()),
-
-                            })}
-                            maxLength={30}
-                            onKeyDown={allowOnlyLetters}
-                            className={inputClass(!!errors.firstName)}
-                        />
-                        
-                        <ErrorText error={errors.firstName} />
-                    </div>
-
-                    <div className="flex-1 flex flex-col gap-1">
-                        <label className="text-sm text-gray-700">
-                            Last Name <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Kapoor"
-                            {...register("lastName", {
-                                required: "Last name is required",
-
-                                minLength: {
-                                    value: 2,
-                                    message: "Must be at least 2 characters",
-                                },
-
-                                maxLength: {
-                                    value: 30,
-                                    message: "Must be under 30 characters",
-                                },
-
-                                pattern: {
-                                    value: /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/,
-                                    message: "Only letters, spaces, hyphens, and apostrophes allowed",
-                                },
-
-                                validate: (value) => {
-                                    if (value.trim() !== value) {
-                                        return "No leading or trailing spaces";
-                                    }
-                                    return true;
-                                },
-
-                                setValueAs: (value: string) =>
-                                    (value || "")
-                                        .trim()
-                                        .toLowerCase()
-                                        .replace(/\b\w/g, (char: string) => char.toUpperCase()),
-                            })}
-                            maxLength={30}
-                            onKeyDown={allowOnlyLetters}
-                            className={inputClass(!!errors.lastName)}
-                        />
-                        <ErrorText error={errors.lastName} />
-                    </div>
+                {/* Mother's Name — optional */}
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm text-gray-700">Mother's Name</label>
+                    <input
+                        type="text"
+                        placeholder="eg. Sunita Sharma"
+                        {...register("motherName")}
+                        onKeyDown={allowOnlyLetters}
+                        maxLength={60}
+                        className={inputClass(false)}
+                    />
                 </div>
 
                 {/* Row 2: Email */}

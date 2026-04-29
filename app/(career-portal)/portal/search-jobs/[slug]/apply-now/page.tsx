@@ -4,6 +4,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useJobFromCache, useApplyJob } from "@/lib/hooks/useJobs";
 import { useProfile } from "@/lib/hooks/useUser";
+import { useAuth } from "@/lib/context/AuthContext";
 
 // ── Ticker ────────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ function ModalSection({ title, children }: { title: string; children: React.Reac
 // ── Review Modal ──────────────────────────────────────────────────────────────
 
 function ReviewModal({ user, onClose, onEdit }: { user: any; onClose: () => void; onEdit: () => void; }) {
-    const fullName = [user.firstName, user.middleName, user.lastName].filter(Boolean).join(" ");
+
     const permanentAddr = [
         user.permanentAddress?.line1, user.permanentAddress?.line2,
         user.permanentAddress?.city, user.permanentAddress?.state,
@@ -79,13 +80,14 @@ function ReviewModal({ user, onClose, onEdit }: { user: any; onClose: () => void
 
                 <div className="overflow-y-auto flex-1 px-6 py-5">
                     <ModalSection title="Basic Details">
-                        <InfoRow label="Full Name" value={fullName} />
+                        <InfoRow label="Full Name" value={user.name} />
                         <InfoRow label="Email" value={user.email} />
-                        <InfoRow label="Alt Email" value={user.altEmail} />
                         <InfoRow label="Phone" value={user.phone} />
                         <InfoRow label="Alt Phone" value={user.altPhone} />
                         <InfoRow label="Gender" value={user.gender} />
-                        <InfoRow label="Date of Birth" value={user.dob} />
+                        <InfoRow label="Date of Birth" value={
+                            user.dob ? new Date(user.dob).toLocaleDateString("en-IN") : undefined
+                        } />
                     </ModalSection>
 
                     <ModalSection title="Address">
@@ -100,7 +102,8 @@ function ReviewModal({ user, onClose, onEdit }: { user: any; onClose: () => void
                                 <InfoRow label="Degree" value={edu.degree} />
                                 <InfoRow label="Field" value={edu.fieldOfStudy} />
                                 <InfoRow label={edu.resultType === "cgpa" ? "CGPA" : "Percentage"} value={edu.gpa} />
-                                <InfoRow label="Duration" value={`${edu.from} → ${edu.to}`} />
+                                <InfoRow label="Year of Passing" value={edu.yearOfPassing} />
+                                <InfoRow label="Mode" value={edu.mode} />
                             </div>
                         ))}
                     </ModalSection>
@@ -115,16 +118,30 @@ function ReviewModal({ user, onClose, onEdit }: { user: any; onClose: () => void
                                         <InfoRow label="Title" value={exp.title} />
                                         <InfoRow label="Company" value={exp.company} />
                                         <InfoRow label="Location" value={exp.location} />
-                                        <InfoRow label="Duration" value={`${exp.from} → ${exp.to}`} />
-                                        <InfoRow label="CTC" value={`₹ ${exp.current}`} />
-                                        <InfoRow label="Notice" value={exp.notice} />
+                                        <InfoRow label="Duration" value={
+                                            exp.from
+                                                ? `${new Date(exp.from).toLocaleDateString("en-IN")} → ${exp.to ? new Date(exp.to).toLocaleDateString("en-IN") : "Present"}`
+                                                : undefined
+                                        } />
+                                        {exp.isCurrentJob && (
+                                            <>
+                                                <InfoRow label="CTC" value={exp.currentctc ? `₹ ${exp.currentctc}` : undefined} />
+                                                <InfoRow label="Notice" value={
+                                                    exp.notice === "0" || exp.notice === 0
+                                                        ? "Immediate Joiner"
+                                                        : exp.notice
+                                                            ? `${exp.notice} Days`
+                                                            : undefined
+                                                } />
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </div>
                         ))}
                     </ModalSection>
 
-                    {user.certifications?.length > 0 && (
+                    {/* {user.certifications?.length > 0 && (
                         <ModalSection title="Certifications">
                             {user.certifications.map((cert: any, i: number) => (
                                 <div key={i} className={i > 0 ? "pt-3 mt-3 border-t border-gray-200" : ""}>
@@ -135,7 +152,7 @@ function ReviewModal({ user, onClose, onEdit }: { user: any; onClose: () => void
                                 </div>
                             ))}
                         </ModalSection>
-                    )}
+                    )} */}
                 </div>
 
                 <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
@@ -190,11 +207,14 @@ function ApplyPageSkeleton() {
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
 export default function ApplyPage() {
+    const { user: authUser } = useAuth();
+    console.log("authUser:", authUser);
     const params = useParams();
     const router = useRouter();
     const slug = String(params.slug);
     const searchParams = useSearchParams();
     const id = searchParams.get("id") ?? "";
+
 
     // ── Fetch job details ─────────────────────────────────────────────────────
     // GET /jobs/{slug} — job info for the header card
@@ -202,7 +222,13 @@ export default function ApplyPage() {
 
     // ── Fetch user profile ────────────────────────────────────────────────────
     // GET /user/profile — user info for the review modal and applicant summary
-    const { data: profile, isLoading: profileLoading } = useProfile();
+    const { data: profile, isLoading: profileLoading, isError: profileError } = useProfile();
+    const user = {                            // ← rename to avoid conflict
+        ...(profile ?? {}),
+        name: authUser?.name ?? "",
+        email: authUser?.email ?? "",
+    } as any;
+
 
     // ── Apply mutation ────────────────────────────────────────────────────────
     // POST /jobs/{id}/apply — submits the application
@@ -256,8 +282,6 @@ export default function ApplyPage() {
             </div>
         );
     }
-
-    const user = profile ?? {} as any;
 
     // ── Success Screen ────────────────────────────────────────────────────────
     if (submitted) {
@@ -340,9 +364,10 @@ export default function ApplyPage() {
 
                     <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
                         {[
+                            { label: "Name", value: user.name },
+                            { label: "Email", value: user.email },
                             { label: "Phone", value: user.phone },
                             { label: "Gender", value: user.gender },
-                            { label: "Latest Degree", value: user.education?.[0]?.degree },
                             { label: "Experience", value: user.experience?.[0]?.experienceType === "fresher" ? "Fresher" : user.experience?.[0]?.title },
                         ].map((item) => (
                             <div key={item.label}>

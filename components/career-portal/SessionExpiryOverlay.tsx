@@ -18,6 +18,7 @@ export default function SessionExpiredOverlay() {
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+   // if (process.env.NODE_ENV === "development") return null;  // ← disable in dev
 
     if (!showSessionExpired) return null;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { allowOnlyLetters, allowDecimal } from "@/lib/utils/keyboardHelpers";
+import { allowOnlyLetters, allowDecimal, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
 import { EducationBlock } from "@/lib/types/registration";
 
 
@@ -12,7 +12,7 @@ interface Props {
 }
 
 const emptyEducation = (): EducationBlock => ({
-    school: "", degree: "", fieldOfStudy: "", resultType: "", gpa: "", from: "", to: "",
+    school: "", degree: "", fieldOfStudy: "", resultType: "", gpa: "", yearOfPassing: "", mode: ""
 });
 
 // ── Reusable Field ──
@@ -161,7 +161,7 @@ const EducationCard = ({
                         Field of study <span className="text-red-500">*</span>
                     </label>
                     <Field
-                        placeholder="Value"
+                        placeholder="eg: Science"
                         value={data.fieldOfStudy}
                         onChange={(v) => onChange(index, "fieldOfStudy", v)}
                         onKeyDown={allowOnlyLetters}
@@ -221,37 +221,55 @@ const EducationCard = ({
                 </div>
             </div>
 
-            {/* From + To */}
+            {/* Year of Passing + Mode */}
             <div className="flex gap-4">
                 <div className="flex-1 flex flex-col gap-1">
                     <label className="text-sm text-gray-700">
-                        From <span className="text-red-500">*</span>
+                        Year of Passing <span className="text-red-500">*</span>
                     </label>
                     <input
-                        type="month"
-                        value={data.from}
-                        onChange={(e) => onChange(index, "from", e.target.value)}
+                        type="text"
+                        placeholder="eg: 2022"
+                        value={data.yearOfPassing}
+                        maxLength={4}
+                        onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, ""); // only digits
+                            if (val.length <= 4) {
+                                onChange(index, "yearOfPassing", val);
+                            }
+                        }}
+                        onKeyDown={allowOnlyNumbers}
                         className={`border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2
-            ${errors[`${index}_from`] ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-teal-400"}`}
+        ${errors[`${index}_yearOfPassing`]
+                                ? "border-red-400 focus:ring-red-300"
+                                : "border-gray-300 focus:ring-teal-400"
+                            }`}
                     />
-                    {errors[`${index}_from`] && (
-                        <p className="text-xs text-red-500">{errors[`${index}_from`]}</p>
+                    {errors[`${index}_yearOfPassing`] && (
+                        <p className="text-xs text-red-500">{errors[`${index}_yearOfPassing`]}</p>
                     )}
                 </div>
 
                 <div className="flex-1 flex flex-col gap-1">
                     <label className="text-sm text-gray-700">
-                        To <span className="text-red-500">*</span>
+                        Mode <span className="text-red-500">*</span>
                     </label>
-                    <input
-                        type="month"
-                        value={data.to}
-                        onChange={(e) => onChange(index, "to", e.target.value)}
+                    <select
+                        value={data.mode}
+                        onChange={(e) => onChange(index, "mode", e.target.value)}
                         className={`border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2
-            ${errors[`${index}_to`] ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-teal-400"}`}
-                    />
-                    {errors[`${index}_to`] && (
-                        <p className="text-xs text-red-500">{errors[`${index}_to`]}</p>
+                ${errors[`${index}_mode`]
+                                ? "border-red-400 focus:ring-red-300"
+                                : "border-gray-300 focus:ring-teal-400"
+                            }`}
+                    >
+                        <option value="">Select Mode</option>
+                        <option value="regular">Regular</option>
+                        <option value="part_time">Part Time</option>
+                        <option value="distance">Distance</option>
+                    </select>
+                    {errors[`${index}_mode`] && (
+                        <p className="text-xs text-red-500">{errors[`${index}_mode`]}</p>
                     )}
                 </div>
             </div>
@@ -276,10 +294,6 @@ export default function EducationalDetails({ onNext, onBack, defaultValues }: Pr
             if (!entry.degree.trim()) newErrors[`${i}_degree`] = "Degree is required";
             if (entry.degree !== "10th" && !entry.fieldOfStudy.trim()) {
                 newErrors[`${i}_fieldOfStudy`] = "Field of study is required";
-            } if (!entry.from) newErrors[`${i}_from`] = "Start date is required";
-            if (!entry.to) newErrors[`${i}_to`] = "End date is required";
-            if (entry.from && entry.to && entry.to < entry.from) {
-                newErrors[`${i}_to`] = "End date must be after start date";
             }
             if (entry.gpa && !entry.resultType) {
                 newErrors[`${i}_resultType`] = "Please select CGPA or Percentage";
@@ -299,8 +313,17 @@ export default function EducationalDetails({ onNext, onBack, defaultValues }: Pr
                     newErrors[`${i}_gpa`] = "Percentage must be between 0 and 100";
                 }
             }
+            if (!entry.yearOfPassing) {
+                newErrors[`${i}_yearOfPassing`] = "Year of passing is required";
+            } else {
+                const year = parseInt(entry.yearOfPassing);
+                const currentYear = new Date().getFullYear();
+                if (isNaN(year) || year > currentYear || year == currentYear) {
+                    newErrors[`${i}_yearOfPassing`] = `Year of Passing should not be greater than ${currentYear}`;
+                }
+            }
+            if (!entry.mode) newErrors[`${i}_mode`] = "Mode is required"
         });
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };

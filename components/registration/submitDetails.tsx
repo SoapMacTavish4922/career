@@ -10,9 +10,9 @@ interface Props {
     formData?: AllFormData;
     onBack?: () => void;
     onSubmitSuccess?: () => void;
-    onSubmit?: (data: AllFormData) => void;  
-    isLoading?: boolean;                     
-    isEditMode?: boolean;                    
+    onSubmit?: (data: AllFormData) => void;
+    isLoading?: boolean;
+    isEditMode?: boolean;
 }
 
 const ReviewRow = ({ label, value }: { label: string; value?: string }) => {
@@ -53,8 +53,6 @@ function ReviewModal({
     loading: boolean;
     isEditMode?: boolean;
 }) {
-    const fullName = [formData.firstName, formData.middleName, formData.lastName]
-        .filter(Boolean).join(" ");
 
     return (
         <div
@@ -85,7 +83,7 @@ function ReviewModal({
                 <div className="overflow-y-auto flex-1 px-6 py-5">
 
                     <ReviewSection title="Basic Details">
-                        <ReviewRow label="Full Name" value={fullName || undefined} />
+                        <ReviewRow label="Name" value={formData.name} />
                         <ReviewRow label="Email" value={formData.email} />
                         <ReviewRow label="Alt Email" value={formData.altEmail} />
                         <ReviewRow label="Phone" value={formData.phone} />
@@ -120,8 +118,8 @@ function ReviewModal({
                                         label={edu.resultType === "cgpa" ? "CGPA" : "Percentage"}
                                         value={edu.gpa}
                                     />
-                                    <ReviewRow label="From" value={edu.from} />
-                                    <ReviewRow label="To" value={edu.to} />
+                                    <ReviewRow label="Year of Passing" value={edu.yearOfPassing} />
+                                    <ReviewRow label="Mode" value={edu.mode} />
                                 </div>
                             ))}
                         </ReviewSection>
@@ -223,14 +221,11 @@ export default function DeclareAndSubmit({
     isEditMode,
 }: Props) {
     const router = useRouter();   // ✅ always at top level — never inside a condition
-
+    const applicantName = formData.name ?? "";
     const [declared, setDeclared] = useState(false);
     const [declError, setDeclError] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [submitted, setSubmitted] = useState(false);
-
-    const fullName = [formData.firstName, formData.middleName, formData.lastName]
-        .filter(Boolean).join(" ");
 
     const handleReviewClick = () => {
         if (!declared) {
@@ -261,7 +256,7 @@ export default function DeclareAndSubmit({
 
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Submitted!</h2>
                 <p className="text-sm text-gray-500 max-w-sm leading-relaxed mb-6">
-                    Thank you{fullName ? `, ${fullName}` : ""}. Your application has been received. Our
+                    Thank {applicantName ? `, ${applicantName}` : ""}. Your application has been received. Our
                     HR team will reach out to you at{" "}
                     <span className="font-semibold text-orange-500">{formData.email}</span>.
                     <br />
@@ -294,7 +289,7 @@ export default function DeclareAndSubmit({
                 </p>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                     {[
-                        { label: "Name", value: fullName },
+                        { label: "Name", value: name },
                         { label: "Email", value: formData.email },
                         { label: "Phone", value: formData.phone },
                         { label: "Gender", value: formData.gender },
@@ -321,7 +316,7 @@ export default function DeclareAndSubmit({
                                 <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
                                     {r.label}
                                 </p>
-                                <p className="text-sm text-gray-800 font-medium truncate">{r.value}</p>
+                                <p className="text-sm text-gray-800 font-medium truncate">{r.value as string}</p>
                             </div>
                         ))}
                 </div>

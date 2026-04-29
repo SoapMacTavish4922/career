@@ -5,6 +5,7 @@ import { ReactNode, useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import { authService } from "@/lib/services/auth.services";
+import Cookies from "js-cookie";
 
 export default function MainLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
@@ -16,6 +17,22 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+    const [photoSrc, setPhotoSrc] = useState("/user.png");
+
+    useEffect(() => {
+        if (!user?.profilePhoto) return;
+
+        const token = Cookies.get("auth_token");
+
+        fetch(user.profilePhoto, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.blob())
+            .then(blob => setPhotoSrc(URL.createObjectURL(blob)))
+            .catch(() => setPhotoSrc("/user.png"));
+
+    }, [user?.profilePhoto]);
 
     // Compute initials from real user name
     const initials = user?.name
@@ -182,7 +199,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                             {/* Avatar — shows profile photo if available, else initials */}
                             <div className="w-9 h-9 rounded-full shrink-0 ring-2 ring-transparent group-hover:ring-[#006256]/30 transition-all overflow-hidden">
                                 <img
-                                    src={user?.profilePhoto ?? "/user.png"}
+                                    src={photoSrc}
                                     alt={user?.name ?? "Profile"}
                                     className="w-full h-full object-cover rounded-full"
                                 />

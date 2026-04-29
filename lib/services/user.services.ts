@@ -6,39 +6,60 @@ export const userService = {
     // ── Get full profile ──────────────────────────────────────────────────────
     getProfile: async () => {
         const res = await api.get(ENDPOINTS.user.profile);
-        const data = res.data;
+        const raw = res.data.data;
+        console.log("data", res);
+        
 
         return {
-            firstName: data.firstName ?? data.first_name,
-            middleName: data.middleName ?? data.middle_name ?? "",
-            lastName: data.lastName ?? data.last_name,
-            email: data.email,
-            phone: data.phone,
-            altPhone: data.altPhone ?? data.alternate_mobile ?? "",
-            gender: data.gender,
-            dob: data.dob ?? data.date_of_birth,
-            education: data.education?.map((edu: any) => ({
-                school: edu.school ?? edu.institution,
-                degree: edu.degree ?? edu.level,
-                fieldOfStudy: edu.fieldOfStudy ?? edu.course,
-                resultType: edu.resultType ?? edu.score_type,
-                gpa: edu.gpa ?? edu.score,
-                from: edu.from,
-                to: edu.to,
+            photo_url: raw.photo_url ?? undefined,
+            name: raw.basic?.name ?? "",
+            fatherName: raw.basic?.father_name ?? "",
+            motherName: raw.basic?.mother_name ?? "",
+            email: raw.basic?.email ?? "",
+            alternate_mobile: raw.basic?.alternate_mobile ?? "",
+            phone: raw.basic?.phone ?? "",
+            altPhone: raw.basic?.alternate_mobile ?? "",
+            gender: raw.basic?.gender ?? "",
+            dob: raw.basic?.dob ?? "",
+
+            // ← flat address fields from Laravel
+            currentAddress: {
+                line1: raw.basic?.current_address ?? "",
+                city: raw.basic?.current_city ?? "",
+                state: raw.basic?.current_state ?? "",
+                country: raw.basic?.current_country ?? "",
+                pinCode: raw.basic?.current_pincode ?? "",
+            },
+            permanentAddress: {
+                line1: raw.basic?.permanent_address ?? "",
+                city: raw.basic?.permanent_city ?? "",
+                state: raw.basic?.permanent_state ?? "",
+                country: raw.basic?.permanent_country ?? "",
+                pinCode: raw.basic?.permanent_pincode ?? "",
+            },
+
+            education: raw.educations?.map((edu: any) => ({
+                school: edu.institution ?? "",
+                degree: edu.level ?? "",
+                fieldOfStudy: edu.course ?? "",
+                resultType: edu.score_type ?? "",
+                gpa: edu.score ?? "",
+                yearOfPassing: edu.year_of_passing ?? "",
+                mode: edu.mode ?? "",
             })),
-            experience: data.experience?.map((exp: any) => ({
-                experienceType: exp.experienceType ?? exp.experience_type,
-                title: exp.title ?? exp.job_title,
-                company: exp.company ?? exp.company_name,
-                location: exp.location,
-                from: exp.from ?? exp.start,
-                to: exp.to ?? exp.end,
-                current: exp.current,
-                notice: exp.notice ?? exp.notice_period,
-                isCurrentJob: exp.isCurrentJob ?? exp.is_current,
+
+            experience: raw.employments?.map((exp: any) => ({
+                experienceType: exp.experience_type ?? "",
+                title: exp.job_title ?? "",
+                designation: exp.designation ?? "",
+                company: exp.company_name ?? "",
+                location: exp.location ?? "",
+                from: exp.start_date ?? "",
+                to: exp.end_date ?? "",
+                currentctc: exp.current_ctc ?? "",
+                notice: exp.notice_period ?? "",
+                isCurrentJob: exp.is_current ?? false,
             })),
-            currentAddress: data.currentAddress ?? data.current_address,
-            permanentAddress: data.permanentAddress ?? data.permanent_address,
         };
     },
 
@@ -81,6 +102,8 @@ export const userService = {
                 formData.append("profile_path", data.profilePhoto);
             }
 
+            formData.append("father_name", data.fatherName ?? "");
+            formData.append("mother_name", data.motherName ?? "");
             formData.append("phone", data.phone);
             formData.append("alternate_mobile", data.altPhone ?? "");
             formData.append("gender", data.gender);
@@ -120,6 +143,8 @@ export const userService = {
                     course: edu.fieldOfStudy,
                     score_type: edu.resultType,
                     score: edu.gpa,
+                    year_of_passing: edu.yearOfPassing,
+                    mode: edu.mode,
                 })),
             });
             console.log(" Education saved");
@@ -151,14 +176,15 @@ export const userService = {
                         start_date: exp.from,
                         end_date: exp.to ?? "",
                         notice_period: exp.isCurrentJob ? noticeToInt(exp.notice) : 0,
+                        current_ctc: exp.currentctc ?? "",
                         is_current: exp.isCurrentJob ?? false,
                     };
                 }),
             });
-            console.log("✅ Experience saved");
+            console.log("Experience saved");
 
         } catch (error: any) {
-            console.error("❌ Experience failed:", error?.response?.data);
+            console.error("Experience failed:", error?.response?.data);
             throw new Error("Failed to save experience details. Please try again.");
         }
     },

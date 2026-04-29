@@ -22,11 +22,17 @@ export const allowDecimal = (e: React.KeyboardEvent<HTMLInputElement>) => {
 export const allowAddressChars = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const allowed = /^[a-zA-Z0-9 ,:\-]$/;
     if (
-        e.key.length === 1 &&           
-        !allowed.test(e.key) &&         
-        !e.ctrlKey &&                   
-        !e.metaKey                      
+        e.key.length === 1 &&
+        !allowed.test(e.key) &&
+        !e.ctrlKey &&
+        !e.metaKey
     ) {
         e.preventDefault();
     }
+};
+
+// ── Capitalize just the first letter ─────────────────────────────────────────
+export const toCapitalize = (str?: string) => {
+    if (!str) return undefined;
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useJobs } from "@/lib/hooks/useJobs";
 import { Job } from "@/lib/types/job";
@@ -208,6 +208,14 @@ const CARDS_PER_PAGE = 10;
 
 export default function SearchJobs() {
     const [keyword, setKeyword] = useState("");
+    const [debouncedKeyword, setDebouncedKeyword] = useState("");
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedKeyword(keyword);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [keyword]);
     const [sidebarFilters, setSidebarFilters] = useState<SidebarFilters>({
         locations: [], jobTypes: [], experiences: [],
     });
@@ -219,7 +227,7 @@ export default function SearchJobs() {
     // Bearer token attached automatically by request interceptor
     // React Query caches — won't refetch on every render
     // Passing keyword to API so backend handles search
-    const { data, isLoading, isError } = useJobs({ keyword: keyword || undefined });
+    const { data, isLoading, isError } = useJobs({ keyword: debouncedKeyword || undefined });
 
     // Laravel paginated: { data: Job[], meta: {...} }
     // If plain array: (data ?? []) as Job[]

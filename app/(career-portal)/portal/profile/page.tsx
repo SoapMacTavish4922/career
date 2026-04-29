@@ -1,32 +1,14 @@
-
-
-
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { isStrongPassword } from "@/lib/validators/auth";
-import PasswordStrength from "@/components/ui/PasswordStrength";
 import PasswordField from "@/components/ui/PasswordField";
-
-// ── Dummy user — replace with useAuth() when backend is ready ─────────────────
-const DUMMY_USER = {
-    firstName: "Raj",
-    lastName: "Sharma",
-    email: "raj.sharma@gmail.com",
-    phone: "9876543210",
-    gender: "Male",
-    dob: "1998-08-15",
-    location: "Mumbai, Maharashtra",
-    experience: "Frontend Developer @ TechCorp",
-    degree: "B.Tech · Computer Science",
-    profilePhoto: null as string | null,
-};
+import { useAuth } from "@/lib/context/AuthContext";
+import { toCapitalize } from "@/lib/utils/keyboardHelpers";
+import Cookies from "js-cookie";
+import { useProfile, useUpdatePhoto, useUpdatePassword } from "@/lib/hooks/useUser";
 
 type ActiveModal = "photo" | "password" | null;
-
-function getInitials(first: string, last: string) {
-    return `${first[0]}${last[0]}`.toUpperCase();
-}
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
@@ -60,7 +42,8 @@ function Toast({ message, type, onClose }: {
 
 // ── Profile Info Row ──────────────────────────────────────────────────────────
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value }: { label: string; value?: string }) {
+    if (!value) return null;
     return (
         <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{label}</span>
@@ -81,7 +64,9 @@ function ChangePhotoModal({ currentPhoto, initials, onClose, onSuccess }: {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(currentPhoto);
     const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
+
+    // ── useUpdatePhoto — POST /user/profile/photo ─────────────────────────────
+    const { mutate: updatePhoto, isPending: loading } = useUpdatePhoto();
 
     const handleFile = (f: File) => {
         if (!["image/jpeg", "image/png", "image/jpg"].includes(f.type)) {
@@ -95,13 +80,18 @@ function ChangePhotoModal({ currentPhoto, initials, onClose, onSuccess }: {
         setPreview(URL.createObjectURL(f));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!file) { setError("Please select a photo first."); return; }
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1500)); // replace with useUpdatePhoto()
-        setLoading(false);
-        onSuccess(preview!);
+
+        updatePhoto(file, {
+            onSuccess: (data) => {
+                onSuccess(data.photo_url ?? preview!);
+            },
+            onError: () => {
+                setError("Failed to upload photo. Please try again.");
+            },
+        });
     };
 
     return (
@@ -194,28 +184,43 @@ function ChangePasswordModal({ onClose, onSuccess }: {
     const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
     const [show, setShow] = useState({ current: false, new: false, confirm: false });
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [loading, setLoading] = useState(false);
+
+    // ── useUpdatePassword — PATCH /user/profile/password ─────────────────────
+    const { mutate: updatePassword, isPending: loading } = useUpdatePassword();
 
     const update = (field: string, value: string) => {
         setPasswords((p) => ({ ...p, [field]: value }));
         setErrors((e) => { const n = { ...e }; delete n[field]; return n; });
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const errs: Record<string, string> = {};
         if (!passwords.current.trim()) errs.current = "Current password is required.";
-        if (!isStrongPassword(passwords.new)) errs.new = "Min 8 chars, 1 uppercase, 1 number.";
+        if (!isStrongPassword(passwords.new))
+            errs.new = "Password must be strong — min 8 chars, uppercase, number and special character.";
         if (passwords.new !== passwords.confirm) errs.confirm = "Passwords do not match.";
         if (passwords.current === passwords.new) errs.new = "New password must differ from current.";
-        // In handleSubmit inside ChangePasswordModal
-        if (!isStrongPassword(passwords.new))
-            errs.new = "Password must be Strong — min 8 chars, uppercase, number and special character.";
         if (Object.keys(errs).length) { setErrors(errs); return; }
-        setLoading(true);
-        await new Promise((r) => setTimeout(r, 1500)); // replace with useUpdatePassword()
-        setLoading(false);
-        onSuccess();
+
+        updatePassword(
+            {
+                current_password: passwords.current,
+                password: passwords.new,
+                password_confirmation: passwords.confirm,
+            },
+            {
+                onSuccess: () => onSuccess(),
+                onError: (error: any) => {
+                    const status = error?.response?.status;
+                    if (status === 422) {
+                        setErrors({ current: "Current password is incorrect." });
+                    } else {
+                        setErrors({ current: "Failed to update password. Please try again." });
+                    }
+                },
+            }
+        );
     };
 
     return (
@@ -241,7 +246,6 @@ function ChangePasswordModal({ onClose, onSuccess }: {
                         onChange={(v) => update("current", v)}
                         onToggle={() => setShow((p) => ({ ...p, current: !p.current }))}
                     />
-
                     <PasswordField
                         field="new"
                         label="New Password"
@@ -253,7 +257,6 @@ function ChangePasswordModal({ onClose, onSuccess }: {
                         onChange={(v) => update("new", v)}
                         onToggle={() => setShow((p) => ({ ...p, new: !p.new }))}
                     />
-
                     <PasswordField
                         field="confirm"
                         label="Confirm New Password"
@@ -289,17 +292,51 @@ function ChangePasswordModal({ onClose, onSuccess }: {
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
 export default function MyProfilePage() {
+    const { user: authUser } = useAuth();
+    const { data: profile, isLoading } = useProfile();
+    const [photoSrc, setPhotoSrc] = useState("/user.png");
+
+    useEffect(() => {
+        if (!authUser?.profilePhoto) return;
+
+        const token = Cookies.get("auth_token");
+
+        fetch(authUser.profilePhoto, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.blob())
+            .then(blob => setPhotoSrc(URL.createObjectURL(blob)))
+            .catch(() => setPhotoSrc("/user.png"));
+
+    }, [authUser?.profilePhoto]);
+
     const [activeModal, setActiveModal] = useState<ActiveModal>(null);
-    const [photoPreview, setPhotoPreview] = useState<string | null>(DUMMY_USER.profilePhoto);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-    const initials = getInitials(DUMMY_USER.firstName, DUMMY_USER.lastName);
-    const fullName = `${DUMMY_USER.firstName} ${DUMMY_USER.lastName}`;
+    // ── User data ─────────────────────────────────────────────────────────────
+    // Name and email from AuthContext (set at login)
+    // Rest from GET /user/profile
+    const profileName = authUser?.name ?? "";
+    const profileEmail = authUser?.email ?? "";
+    const photoUrl = photoPreview ?? (profile as any)?.photo_url ?? authUser?.profilePhoto ?? null;
+
+    const initials = profileName
+        ? profileName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+        : "?";
 
     const showToast = (message: string, type: "success" | "error") => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3500);
     };
+
+    if (isLoading) return (
+        <div className="max-w-2xl flex flex-col gap-6 animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-40" />
+            <div className="bg-gray-100 rounded-2xl h-48" />
+            <div className="bg-gray-100 rounded-2xl h-64" />
+        </div>
+    );
 
     return (
         <div className="max-w-2xl flex flex-col gap-6">
@@ -312,17 +349,13 @@ export default function MyProfilePage() {
 
             {/* ── Profile Card ── */}
             <div className="bg-white border border-gray-400 rounded-2xl overflow-hidden">
-                {/* Teal banner */}
                 <div className="h-24 bg-gradient-to-r from-[#006256] to-[#004d45]" />
-
                 <div className="px-6 pb-5">
                     <div className="flex items-end justify-between -mt-10 mb-4">
-
-                        {/* Avatar with camera badge */}
                         <div className="relative">
-                            <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-[#006256] flex items-center justify-center">
-                                {photoPreview ? (
-                                    <img src={photoPreview} alt={fullName} className="w-full h-full object-cover" />
+                            <div className="w-20 h-20 rounded-2xl border-4 border-white shadow-md overflow-hidden bg-white flex items-center justify-center">
+                                {photoUrl ? (
+                                    <img src={photoSrc} alt={profileName} className="w-full h-full object-cover" />
                                 ) : (
                                     <span className="text-white text-xl font-bold">{initials}</span>
                                 )}
@@ -337,7 +370,6 @@ export default function MyProfilePage() {
                             </button>
                         </div>
 
-                        {/* Quick action buttons */}
                         <div className="flex gap-2 mb-1">
                             <button onClick={() => setActiveModal("photo")}
                                 className="flex items-center gap-1.5 text-xs font-semibold text-[#006256] border border-[#006256]/30 bg-[#006256]/5 hover:bg-[#006256]/10 px-3 py-1.5 rounded-lg transition-colors">
@@ -347,12 +379,11 @@ export default function MyProfilePage() {
                                 </svg>
                                 Change Photo
                             </button>
-
                         </div>
                     </div>
 
-                    <h2 className="text-lg font-bold text-gray-900">{fullName}</h2>
-                    <p className="text-sm text-gray-400 mt-0.5">{DUMMY_USER.email}</p>
+                    <h2 className="text-lg font-bold text-gray-900">{profileName || "—"}</h2>
+                    <p className="text-sm text-gray-400 mt-0.5">{profileEmail || "—"}</p>
                 </div>
             </div>
 
@@ -373,14 +404,28 @@ export default function MyProfilePage() {
                     </a>
                 </div>
                 <div className="px-6 py-5 grid grid-cols-2 gap-x-8 gap-y-5">
-                    <InfoRow label="Full Name" value={fullName} />
-                    <InfoRow label="Email" value={DUMMY_USER.email} />
-                    <InfoRow label="Phone" value={DUMMY_USER.phone} />
-                    <InfoRow label="Gender" value={DUMMY_USER.gender} />
-                    <InfoRow label="Date of Birth" value={DUMMY_USER.dob} />
-                    <InfoRow label="Location" value={DUMMY_USER.location} />
-                    <InfoRow label="Experience" value={DUMMY_USER.experience} />
-                    <InfoRow label="Education" value={DUMMY_USER.degree} />
+                    <InfoRow label="Full Name" value={toCapitalize(profileName)} />
+                    <InfoRow label="Email" value={profileEmail} />
+                    <InfoRow label="Phone" value={(profile as any)?.phone} />
+                    <InfoRow label="Gender" value={toCapitalize((profile as any)?.gender)} />
+                    <InfoRow label="Date of Birth" value={
+                        (profile as any)?.dob
+                            ? new Date((profile as any).dob).toLocaleDateString("en-IN")
+                            : undefined
+                    } />
+                    <InfoRow label="Father's Name" value={toCapitalize((profile as any)?.fatherName)} />
+                    <InfoRow label="Mother's Name" value={toCapitalize((profile as any)?.motherName)} />
+                    <InfoRow label="City" value={toCapitalize((profile as any)?.currentAddress?.city)} />
+                    <InfoRow label="Experience" value={
+                        toCapitalize((profile as any)?.experience?.[0]?.experienceType === "fresher"
+                            ? "Fresher"
+                            : (profile as any)?.experience?.[0]?.title)
+                    } />
+                    <InfoRow label="Education" value={
+                        (profile as any)?.education?.[0]?.degree
+                            ? `${toCapitalize((profile as any).education[0].degree)}${(profile as any).education[0].school ? ` · ${(profile as any).education[0].school}` : ""}`
+                            : undefined
+                    } />
                 </div>
             </div>
 
@@ -413,7 +458,7 @@ export default function MyProfilePage() {
             {/* ── Modals ── */}
             {activeModal === "photo" && (
                 <ChangePhotoModal
-                    currentPhoto={photoPreview}
+                    currentPhoto={photoUrl}
                     initials={initials}
                     onClose={() => setActiveModal(null)}
                     onSuccess={(url) => {
@@ -437,4 +482,4 @@ export default function MyProfilePage() {
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
-}
+}   

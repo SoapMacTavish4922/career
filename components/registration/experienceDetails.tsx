@@ -266,13 +266,13 @@ const ExperienceCard = ({
                                     onKeyDown={allowOnlyNumbers}
                                     maxLength={10}
                                     className={`border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 w-full
-                                        ${errors[`${index}_current`]
+                                        ${errors[`${index}_currentctc`]
                                             ? "border-red-400 focus:ring-red-300"
                                             : "border-gray-300 focus:ring-teal-400"
                                         }`}
                                 />
-                                {errors[`${index}_current`] && (
-                                    <p className="text-xs text-red-500">{errors[`${index}_current`]}</p>
+                                {errors[`${index}_currentctc`] && (
+                                    <p className="text-xs text-red-500">{errors[`${index}_currentctc`]}</p>
                                 )}
                             </div>
 
@@ -350,7 +350,7 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues }: Pro
                 }
 
                 if ((entry as any).isCurrentJob && !entry.currentctc.trim()) {
-                    newErrors[`${i}_current`] = "Current CTC is required";
+                    newErrors[`${i}_currentctc`] = "Current CTC is required";
                 }
             }
         });

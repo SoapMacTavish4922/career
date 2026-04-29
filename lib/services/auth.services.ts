@@ -9,7 +9,7 @@ export const authService = {
 
     login: async (email: string, password: string) => {
         const res = await api.post(ENDPOINTS.auth.login, { email, password });
-        const { data } = res.data; // ← tokens are inside res.data.data
+        const { data } = res.data; 
 
         const user = {
             id: data.id,

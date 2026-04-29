@@ -12,9 +12,9 @@ export interface EducationBlock {
     fieldOfStudy: string;
     resultType: "cgpa" | "percentage" | "";
     gpa: string;
-    from: string;
-    to: string;
     otherDegree?: string;
+    yearOfPassing: string;
+    mode:          string;
 }
 
 export interface ExperienceBlock {
@@ -40,9 +40,9 @@ export interface CertificationBlock {
 }
 
 export interface AllFormData {
-    firstName?: string;
-    middleName?: string;
-    lastName?: string;
+    name?: string;
+    fatherName?:  string;   // ← add
+    motherName?:  string;
     email?: string;
     altEmail?: string;
     phone?: string;

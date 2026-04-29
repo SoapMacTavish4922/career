@@ -13,6 +13,7 @@ export const ENDPOINTS = {
         forgotPassword: "/forgot-password",
         verifyResetOtp: "/verify-forgot-otp",   // forgot password OTP
         resetPassword: "/set-password",      // reset
+        heartbeat: "/heartbeat",  // ← confirm URL with Laravel dev
         me: "/auth/me",
     },
 
@@ -25,16 +26,16 @@ export const ENDPOINTS = {
 
     jobs: {
         list: "/jobs",
-        detail: (id: string) => `/jobs/${id}`,  // ← GET /jobs/{job.id}
+        detail: (id: string) => `/jobs/${id}`,  
         apply: (id: string) => `/jobs/${id}/apply`,
         applied: "/my-applications",
         interviewSchedule: "/jobs/interviews",
     },
 
     registration: {
-        basicDetails: "/candidate/basic-details",   
-        education: "/education",        
-        experience: "/employment",      
+        basicDetails: "/candidate/basic-details",
+        education: "/education",
+        experience: "/employment",
         update: "/update",
     },
 

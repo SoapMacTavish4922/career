@@ -11,6 +11,7 @@ import {
 import Cookies from "js-cookie";
 import api, { tokenHelper } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
+import { userService } from "@/lib/services/user.services";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,10 +27,10 @@ interface AuthContextType {
     user: User | null;
     isLoggedIn: boolean;
     isLoading: boolean;
-    showSessionExpired: boolean;          // controls the overlay
+    showSessionExpired: boolean;
     setUser: (user: User | null) => void;
-    login: (userData: Omit<User, never>, accessToken: string, refreshToken: string) => void;
-    reLogin: (userData: Omit<User, never>, accessToken: string, refreshToken: string) => void;
+    login: (userData: Omit<User, never>, accessToken: string, refreshToken: string) => Promise<void>;
+    reLogin: (userData: Omit<User, never>, accessToken: string, refreshToken: string) => Promise<void>;
     logout: () => void;
     refreshTokens: () => Promise<boolean>;
     triggerSessionExpiry: () => void;      // called by axios interceptor on 401
@@ -94,29 +95,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     // ── Login — first time or normal login ────────────────────────────────────
-    const login = (user: User, accessToken: string, refreshToken: string) => {
+    const login = async (user: User, accessToken: string, refreshToken: string) => {
         tokenHelper.setTokens(accessToken, refreshToken);
-        Cookies.set("user_info", JSON.stringify(user), {
+
+        let enrichedUser = { ...user };
+
+        // If profile is complete, fetch photo_url and attach it
+        if (user.is_profile_complete) {
+            try {
+                const profile = await userService.getProfile();
+                if (profile.photo_url) {
+                    enrichedUser.profilePhoto = profile.photo_url;
+                }
+            } catch {
+                // Non-fatal — login still succeeds without photo
+            }
+        }
+
+        Cookies.set("user_info", JSON.stringify(enrichedUser), {
             expires: 7,
             sameSite: "Lax",
             secure: process.env.NODE_ENV === "production",
         });
-        setUser(user);
+        setUser(enrichedUser);
         setShowSessionExpired(false);
     };
 
     // ── Re-login — called from SessionExpiredOverlay ──────────────────────────
-    // Restores auth state WITHOUT redirecting
-    // User stays exactly where they are — form data is preserved
-    const reLogin = (user: User, accessToken: string, refreshToken: string) => {
+    const reLogin = async (user: User, accessToken: string, refreshToken: string) => {
         tokenHelper.setTokens(accessToken, refreshToken);
-        Cookies.set("user_info", JSON.stringify(user), {
+
+        let enrichedUser = { ...user };
+
+        if (user.is_profile_complete) {
+            try {
+                const profile = await userService.getProfile();
+                if (profile.photo_url) {
+                    enrichedUser.profilePhoto = profile.photo_url;
+                }
+            } catch {
+                // Non-fatal
+            }
+        }
+
+        Cookies.set("user_info", JSON.stringify(enrichedUser), {
             expires: 7,
             sameSite: "Lax",
             secure: process.env.NODE_ENV === "production",
         });
-        setUser(user);
-        setShowSessionExpired(false); // hide the overlay — user continues where they left off
+        setUser(enrichedUser);
+        setShowSessionExpired(false);
     };
 
 

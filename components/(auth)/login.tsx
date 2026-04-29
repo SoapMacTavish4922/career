@@ -77,7 +77,7 @@ export default function LoginPage() {
       const data1 = await authService.login(form.email, form.password);
 
 
-      login(data1.user, data1.access_token, data1.refresh_token);
+      await login(data1.user, data1.access_token, data1.refresh_token);
 
       // First time user (no profile) → registration form
       // Returning user → search jobs page
