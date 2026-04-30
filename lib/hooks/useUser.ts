@@ -15,16 +15,7 @@ export function useProfile() {
     });
 }
 
-// Edit details submit
-export function useUpdateProfile() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: userService.updateProfile,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: userKeys.profile });
-        },
-    });
-}
+
 
 // Profile page photo upload — also updates avatar in topbar instantly
 export function useUpdatePhoto() {
@@ -34,7 +25,7 @@ export function useUpdatePhoto() {
         mutationFn: userService.updatePhoto,
         onSuccess: (data) => {
             if (user) {
-                const updatedUser = { ...user, profilePhoto: data.photo_url };
+                const updatedUser = { ...user, profilePhoto: data.photo_url ?? data.data?.photo_url, };
                 setUser(updatedUser);
                 Cookies.set("user_info", JSON.stringify(updatedUser), {
                     expires: 7,
@@ -80,17 +71,6 @@ export function useSubmitRegistration() {
         },
         onError: (error: any) => {
             console.error("Registration failed:", error?.response?.data);
-        },
-    });
-}
-
-// Edit details update — for returning users editing existing profile
-export function useUpdateRegistration() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: userService.updateRegistration,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: userKeys.profile });
         },
     });
 }

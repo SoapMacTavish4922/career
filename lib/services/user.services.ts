@@ -1,6 +1,10 @@
 import api from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 
+const toDateInput = (val: any) => val ? val.toString().split("T")[0] : "";
+const toMonthInput = (val: any) => val ? val.toString().substring(0, 7) : "";
+const toTitleCase = (val: any) => val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : "";
+
 export const userService = {
 
     // ── Get full profile ──────────────────────────────────────────────────────
@@ -8,7 +12,7 @@ export const userService = {
         const res = await api.get(ENDPOINTS.user.profile);
         const raw = res.data.data;
         console.log("data", res);
-        
+
 
         return {
             photo_url: raw.photo_url ?? undefined,
@@ -19,8 +23,8 @@ export const userService = {
             alternate_mobile: raw.basic?.alternate_mobile ?? "",
             phone: raw.basic?.phone ?? "",
             altPhone: raw.basic?.alternate_mobile ?? "",
-            gender: raw.basic?.gender ?? "",
-            dob: raw.basic?.dob ?? "",
+            gender: toTitleCase(raw.basic?.gender),
+            dob: toDateInput(raw.basic?.dob),
 
             // ← flat address fields from Laravel
             currentAddress: {
@@ -39,43 +43,42 @@ export const userService = {
             },
 
             education: raw.educations?.map((edu: any) => ({
+                id: edu.id,
                 school: edu.institution ?? "",
                 degree: edu.level ?? "",
                 fieldOfStudy: edu.course ?? "",
                 resultType: edu.score_type ?? "",
-                gpa: edu.score ?? "",
+                gpa: edu.score != null ? String(edu.score) : "",
                 yearOfPassing: edu.year_of_passing ?? "",
                 mode: edu.mode ?? "",
             })),
 
             experience: raw.employments?.map((exp: any) => ({
+
+                id: exp.id,
                 experienceType: exp.experience_type ?? "",
                 title: exp.job_title ?? "",
                 designation: exp.designation ?? "",
                 company: exp.company_name ?? "",
                 location: exp.location ?? "",
-                from: exp.start_date ?? "",
-                to: exp.end_date ?? "",
-                currentctc: exp.current_ctc ?? "",
+                from: toMonthInput(exp.start_date),
+                to: toMonthInput(exp.end_date),
+                currentctc: exp.current_ctc != null ? String(exp.current_ctc) : "",
                 notice: exp.notice_period ?? "",
                 isCurrentJob: exp.is_current ?? false,
+
             })),
         };
-    },
-
-    // ── Update profile ────────────────────────────────────────────────────────
-    updateProfile: async (data: any) => {
-        const res = await api.patch(ENDPOINTS.user.update, data);
-        return res.data;
     },
 
     // ── Update profile photo ──────────────────────────────────────────────────
     updatePhoto: async (file: File) => {
         const formData = new FormData();
-        formData.append("profile_photo", file);
+        formData.append("photo", file);
         const res = await api.post(ENDPOINTS.user.photo, formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
+        console.log("updatePhoto response:", res.data);
         return res.data;
     },
 
@@ -138,6 +141,7 @@ export const userService = {
         try {
             await api.post(ENDPOINTS.registration.education, {
                 education: data.education?.map((edu: any) => ({
+                    id: edu.id,
                     institution: edu.school,
                     level: edu.degree,
                     course: edu.fieldOfStudy,
@@ -168,6 +172,7 @@ export const userService = {
                         return { experience_type: "fresher" };
                     }
                     return {
+                        id: exp.id,
                         experience_type: exp.experienceType,
                         job_title: exp.title,
                         designation: exp.designation ?? "",
@@ -191,8 +196,44 @@ export const userService = {
 
     // ── Update registration ───────────────────────────────────────────────────
     // Called from DeclareAndSubmit on edit-details flow
-    updateRegistration: async (data: any) => {
-        const res = await api.patch(ENDPOINTS.registration.update, data);
+    // ── Save single education entry ───────────────────────────────────────────
+    saveEducation: async (id: string, edu: any) => {
+        const res = await api.put(`${ENDPOINTS.user.update_edu}/${id}`, {
+            education: [{
+                institution: edu.school,
+                level: edu.degree,
+                course: edu.fieldOfStudy,
+                score_type: edu.resultType,
+                score: edu.gpa,
+                year_of_passing: parseInt(edu.yearOfPassing) || null,
+                mode: edu.mode,
+            }],
+        });
         return res.data;
     },
+
+    // ── Save single experience entry ──────────────────────────────────────────
+    saveExperience: async (id: string, exp: any) => {
+        const noticeToInt = (notice: string): number => {
+            if (notice === "Immediate Joiner") return 0;
+            if (notice === "90+") return 91;
+            return parseInt(notice) || 0;
+        };
+        const res = await api.put(`${ENDPOINTS.user.update_exp}/${id}`, {
+            employment: [{
+                experience_type: exp.experienceType,
+                job_title: exp.title,
+                designation: exp.designation ?? "",
+                company_name: exp.company,
+                location: exp.location,
+                start_date: exp.from,
+                end_date: exp.isCurrentJob ? null : exp.to ?? "",
+                notice_period: exp.isCurrentJob ? noticeToInt(exp.notice) : 0,
+                current_ctc: exp.currentctc ?? "",
+                is_current: exp.isCurrentJob ?? false,
+            }],
+        });
+        return res.data;
+    },
+
 };

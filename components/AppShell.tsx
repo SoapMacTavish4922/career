@@ -1,4 +1,4 @@
-"use client"; // ← client directive goes here instead
+"use client"; 
 
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -14,7 +14,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
     const isAuthPage = AUTH_ROUTES.some((r) => pathname.startsWith(r));
-    const { triggerSessionExpiry, isLoggedIn } = useAuth(); // ← add isLoggedIn
+    const { triggerSessionExpiry, isLoggedIn } = useAuth(); 
     const lastActivityRef = useRef<number>(Date.now());
     const INACTIVE_LIMIT = 30 * 60 * 1000;  // 30 min — if no activity skip ping
 

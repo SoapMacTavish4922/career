@@ -11,16 +11,17 @@ export const ENDPOINTS = {
         refresh: "/auth/refresh",
         verifyOtp: "/verify-otp",
         forgotPassword: "/forgot-password",
-        verifyResetOtp: "/verify-forgot-otp",   // forgot password OTP
-        resetPassword: "/set-password",      // reset
-        heartbeat: "/heartbeat",  // ← confirm URL with Laravel dev
+        verifyResetOtp: "/verify-forgot-otp",   
+        resetPassword: "/set-password",      
+        heartbeat: "/heartbeat",  
         me: "/auth/me",
     },
 
     user: {
         profile: "/candidate/profile",
-        update: "/user/profile/update",
-        photo: "/user/profile/photo",
+        update_edu: "/update-education",
+        update_exp:"/update-employment",
+        photo: "/candidate/upload-photo",
         password: "/user/profile/password",
     },
 
@@ -36,7 +37,7 @@ export const ENDPOINTS = {
         basicDetails: "/candidate/basic-details",
         education: "/education",
         experience: "/employment",
-        update: "/update",
+        //update: "/update",
     },
 
     faqs: {

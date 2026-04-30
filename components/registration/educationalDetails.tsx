@@ -3,16 +3,18 @@
 import { useState } from "react";
 import { allowOnlyLetters, allowDecimal, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
 import { EducationBlock } from "@/lib/types/registration";
+import { userService } from "@/lib/services/user.services";
 
 
 interface Props {
     onNext: (data?: any) => void;
     onBack: () => void;
     defaultValues?: { education?: EducationBlock[] };
+    isEditMode?: boolean;
 }
 
 const emptyEducation = (): EducationBlock => ({
-    school: "", degree: "", fieldOfStudy: "", resultType: "", gpa: "", yearOfPassing: "", mode: ""
+    id: "", school: "", degree: "", fieldOfStudy: "", resultType: "", gpa: "", yearOfPassing: "", mode: ""
 });
 
 // ── Reusable Field ──
@@ -45,7 +47,7 @@ const Field = ({
 
 // ── Single Education Entry Card ──
 const EducationCard = ({
-    index, data, onChange, onDelete, errors, showDelete,
+    index, data, onChange, onDelete, errors, showDelete, onSave, isSaving, isSaved, isEditMode
 }: {
     index: number;
     data: EducationBlock;
@@ -53,6 +55,10 @@ const EducationCard = ({
     onDelete: (index: number) => void;
     errors: Partial<Record<string, string>>;
     showDelete: boolean;
+    onSave?: () => void;
+    isSaving?: boolean;
+    isSaved?: boolean;
+    isEditMode?: boolean;
 }) => {
     const isOther = data.degree === "others";
     const is10th = data.degree === "10th";
@@ -273,17 +279,69 @@ const EducationCard = ({
                     )}
                 </div>
             </div>
+
+            {isEditMode && (
+                <button
+                    type="button"
+                    onClick={onSave}
+                    disabled={isSaving}
+                    className="self-end flex items-center gap-2 text-xs font-semibold bg-[#006256] hover:bg-[#004d45] text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
+                >
+                    {isSaving ? (
+                        <>
+                            <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Saving...
+                        </>
+                    ) : isSaved ? (
+                        <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Saved!
+                        </>
+                    ) : "Save"}
+                </button>
+            )}
         </div>
     )
 };
 
-export default function EducationalDetails({ onNext, onBack, defaultValues }: Props) {
+export default function EducationalDetails({ onNext, onBack, defaultValues, isEditMode }: Props) {
     const [entries, setEntries] = useState<EducationBlock[]>(
         defaultValues?.education?.length
             ? defaultValues.education
             : [emptyEducation()]
     );
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+    const [savingIndex, setSavingIndex] = useState<number | null>(null);
+    const [savedIndex, setSavedIndex] = useState<number | null>(null);
+    const handleSaveCard = async (index: number) => {
+        const entry = entries[index];
+
+        // Validate just this entry
+        const newErrors: Partial<Record<string, string>> = {};
+        if (!entry.school.trim()) newErrors[`${index}_school`] = "School is required";
+        if (!entry.degree.trim()) newErrors[`${index}_degree`] = "Degree is required";
+        if (!entry.yearOfPassing) newErrors[`${index}_yearOfPassing`] = "Year of passing is required";
+        if (!entry.mode) newErrors[`${index}_mode`] = "Mode is required";
+        if (Object.keys(newErrors).length > 0) { setErrors((p) => ({ ...p, ...newErrors })); return; }
+
+        if (!entry.id) { alert("Cannot save — missing record ID."); return; }
+
+        setSavingIndex(index);
+        try {
+            await userService.saveEducation(entry.id, entry);
+            setSavedIndex(index);
+            setTimeout(() => setSavedIndex(null), 2000);
+        } catch {
+            alert("Failed to save. Please try again.");
+        } finally {
+            setSavingIndex(null);
+        }
+    };
 
     // ── Validate ──
     const validate = () => {
@@ -298,17 +356,17 @@ export default function EducationalDetails({ onNext, onBack, defaultValues }: Pr
             if (entry.gpa && !entry.resultType) {
                 newErrors[`${i}_resultType`] = "Please select CGPA or Percentage";
             }
-            if (entry.resultType && !entry.gpa.trim()) {
+            if (entry.resultType && !(entry.gpa ?? "").trim()) {
                 newErrors[`${i}_gpa`] = "Please enter a value";
             }
             if (entry.resultType === "cgpa" && entry.gpa) {
-                const val = parseFloat(entry.gpa);
+                const val = parseFloat(entry.gpa ?? "");
                 if (isNaN(val) || val < 0 || val > 10.0) {
                     newErrors[`${i}_gpa`] = "CGPA must be between 0 and 10.0";
                 }
             }
             if (entry.resultType === "percentage" && entry.gpa) {
-                const val = parseFloat(entry.gpa);
+                const val = parseFloat(entry.gpa ?? "");
                 if (isNaN(val) || val < 0 || val > 100) {
                     newErrors[`${i}_gpa`] = "Percentage must be between 0 and 100";
                 }
@@ -333,7 +391,7 @@ export default function EducationalDetails({ onNext, onBack, defaultValues }: Pr
     };
 
     const handleAddAnother = () => {
-        if (entries.length >= 5) return;   // ✅ safety guard
+        if (entries.length >= 5) return;
         setEntries((prev) => [...prev, emptyEducation()]);
     };
 
@@ -372,6 +430,10 @@ export default function EducationalDetails({ onNext, onBack, defaultValues }: Pr
                         onDelete={handleDelete}
                         errors={errors}
                         showDelete={entries.length > 1}
+                        isEditMode={isEditMode}
+                        onSave={() => handleSaveCard(index)}
+                        isSaving={savingIndex === index}
+                        isSaved={savedIndex === index}
                     />
                 ))}
             </div>
@@ -396,15 +458,17 @@ export default function EducationalDetails({ onNext, onBack, defaultValues }: Pr
 
             {/* Buttons */}
             <div className="flex gap-4 mt-8">
-                <button className="flex-1 border border-gray-300 text-gray-600 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors"
-                    onClick={onBack}>
+                <button
+                    className="flex-1 border border-gray-300 text-gray-600 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors"
+                    onClick={onBack}
+                >
                     Back
                 </button>
                 <button
-                    onClick={handleSubmit}
+                    onClick={() => isEditMode ? onNext({ education: entries }) : handleSubmit()}
                     className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
                 >
-                    Save & Continue
+                    {isEditMode ? "Next" : "Save & Continue"}
                 </button>
             </div>
         </div>

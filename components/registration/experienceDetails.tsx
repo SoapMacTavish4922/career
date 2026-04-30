@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
 import { ExperienceBlock } from "@/lib/types/registration";
+import { userService } from "@/lib/services/user.services";
 
 interface Props {
     onNext: (data?: any) => void;
     onBack: () => void;
     defaultValues?: { experience?: ExperienceBlock[] };
+    isEditMode?: boolean;
 }
 
 const emptyExperience = (): ExperienceBlock => ({
-    experienceType: "", title: "", designation: "", company: "",
+    id: "", experienceType: "", title: "", designation: "", company: "",
     location: "", from: "", to: "", currentctc: "", notice: "Immediate Joiner",
     isCurrentJob: false,
 });
@@ -54,7 +56,7 @@ const Field = ({
 const ExperienceCard = ({
     index, data, onChange, onDelete, onToggleCurrent,
     errors, showDelete, isFirst, hasCurrentJob,
-    notice, onNoticeChange, noticeError,
+    notice, onNoticeChange, noticeError, onSave, isSaved, isSaving, isEditMode,
 }: {
     index: number;
     data: ExperienceBlock;
@@ -68,6 +70,10 @@ const ExperienceCard = ({
     notice?: string;
     onNoticeChange?: (v: string) => void;
     noticeError?: string;
+    onSave?: () => void;
+    isSaving?: boolean;
+    isSaved?: boolean;
+    isEditMode?: boolean;
 }) => {
     const isExperienced = data.experienceType === "experienced";
     const isCurrentJob = !!(data as any).isCurrentJob;
@@ -185,7 +191,7 @@ const ExperienceCard = ({
 
                     {/* ── Company ── */}
                     <Field
-                        label="Company Name" 
+                        label="Company Name"
                         required
                         placeholder="eg: XYZ Tech"
                         value={data.company}
@@ -299,18 +305,64 @@ const ExperienceCard = ({
                             </div>
                         </>
                     )}
+
+                    {isEditMode && (
+                        <button
+                            type="button"
+                            onClick={onSave}
+                            disabled={isSaving}
+                            className="self-end flex items-center gap-2 text-xs font-semibold bg-[#006256] hover:bg-[#004d45] text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                    </svg>
+                                    Saving...
+                                </>
+                            ) : isSaved ? (
+                                <>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Saved!
+                                </>
+                            ) : "Save"}
+                        </button>
+                    )}
                 </>
+
             )}
         </div>
     );
 };
 
-export default function ExperienceDetails({ onNext, onBack, defaultValues }: Props) {
+export default function ExperienceDetails({ onNext, onBack, defaultValues, isEditMode }: Props) {
     const [entries, setEntries] = useState<ExperienceBlock[]>(
         defaultValues?.experience?.length
             ? defaultValues.experience
             : [emptyExperience()]
     );
+    const [savingIndex, setSavingIndex] = useState<number | null>(null);
+    const [savedIndex, setSavedIndex] = useState<number | null>(null);
+
+    const handleSaveCard = async (index: number) => {
+        const entry = entries[index];
+        if (!entry.id) { alert("Cannot save — missing record ID."); return; }
+        if (entry.experienceType === "fresher") { alert("Fresher has no record to update."); return; }
+
+        setSavingIndex(index);
+        try {
+            await userService.saveExperience(entry.id, { ...entry, notice });
+            setSavedIndex(index);
+            setTimeout(() => setSavedIndex(null), 2000);
+        } catch {
+            alert("Failed to save. Please try again.");
+        } finally {
+            setSavingIndex(null);
+        }
+    };
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
     const [notice, setNotice] = useState(
         defaultValues?.experience?.[0]?.notice ?? "Immediate Joiner"
@@ -349,7 +401,7 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues }: Pro
                     }
                 }
 
-                if ((entry as any).isCurrentJob && !entry.currentctc.trim()) {
+                if ((entry as any).isCurrentJob && !(entry.currentctc ?? "").toString().trim()) {
                     newErrors[`${i}_currentctc`] = "Current CTC is required";
                 }
             }
@@ -397,7 +449,7 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues }: Pro
         <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-1">Enter experience details</h2>
             <p className="text-sm text-gray-500 mb-6">Tell us about your work experience!</p>
-            
+
 
             <div className="flex flex-col gap-6">
                 {entries.map((entry, index) => (
@@ -415,6 +467,10 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues }: Pro
                         notice={notice}
                         onNoticeChange={setNotice}
                         noticeError={errors["notice"]}
+                        isEditMode={isEditMode}              // ← add
+                        onSave={() => handleSaveCard(index)} // ← add
+                        isSaving={savingIndex === index}     // ← add
+                        isSaved={savedIndex === index}
                     />
                 ))}
             </div>
@@ -444,7 +500,6 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues }: Pro
                 </div>
             )}
 
-            {/* ── Buttons ── */}
             <div className="flex gap-4 mt-8">
                 <button
                     className="flex-1 border border-gray-300 text-gray-600 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors"
@@ -453,10 +508,10 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues }: Pro
                     Back
                 </button>
                 <button
-                    onClick={handleSubmit}
+                    onClick={() => onNext({ education: entries })} // ← just pass data, no validation gate in edit mode
                     className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
                 >
-                    Save & Continue
+                    {isEditMode ? "Next" : "Save & Continue"}
                 </button>
             </div>
         </div>

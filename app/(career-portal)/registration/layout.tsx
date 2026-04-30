@@ -10,7 +10,7 @@ import DeclareAndSubmit from "@/components/registration/submitDetails";
 import { AllFormData } from "@/lib/types/registration";
 import { saveFormProgress, loadFormProgress, clearFormProgress } from "@/lib/utils/formProgress";
 import { useRouter } from "next/navigation";
-import { useSubmitRegistration, useUpdateRegistration } from "@/lib/hooks/useUser";
+import { useSubmitRegistration } from "@/lib/hooks/useUser";
 
 const steps = [
     { id: 1, label: "Basic details" },
@@ -23,31 +23,26 @@ const steps = [
 interface Props {
     defaultValues?: AllFormData;
     isEditMode?: boolean;
+    lockedEmail?: string;
+    lockedName?: string;
+    editableSteps?: number[];
 
 }
 
-export default function RegistrationLayout({ defaultValues, isEditMode = false, }: Props) {
 
-    const [currentStep, setCurrentStep] = useState(1);
+export default function RegistrationLayout({ defaultValues, isEditMode = false, lockedEmail = "", lockedName = "", editableSteps, }: Props) {
+    const visibleSteps = editableSteps
+        ? steps.filter((s) => [...editableSteps, steps.length].includes(s.id))
+        : steps;
+    const [currentStep, setCurrentStep] = useState(
+        editableSteps?.length ? editableSteps[0] : 1
+    );
     const router = useRouter();
     const { mutate: submitRegistration, isPending: submitting } = useSubmitRegistration();
-    const { mutate: updateRegistration, isPending: updating } = useUpdateRegistration();
     const [formData, setFormData] = useState<AllFormData>(defaultValues ?? {});
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedStep, setSavedStep] = useState(1);
     const { user } = useAuth();
-
-
-    // ── On mount: check localStorage for saved progress ───────────────────────
-    // Skip in edit mode (defaultValues passed from edit-details page)
-    useEffect(() => {
-        if (defaultValues) return;
-        const saved = loadFormProgress();
-        if (saved && saved.currentStep > 1) {
-            setSavedStep(saved.currentStep);
-            setShowResumePrompt(true);
-        }
-    }, []);
 
     // ── Resume from saved step ────────────────────────────────────────────────
     const handleResume = () => {
@@ -72,51 +67,57 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
             : formData;
 
         setFormData(updatedFormData);
-        const nextStep = Math.min(currentStep + 1, steps.length);
-        setCurrentStep(nextStep);
+        saveFormProgress(currentStep, updatedFormData);
 
-        // Persist to localStorage so session expiry doesn't lose progress
-        saveFormProgress(nextStep, updatedFormData);
+        if (editableSteps?.length) {
+            const currentIndex = editableSteps.indexOf(currentStep);
+            const nextStep = editableSteps[currentIndex + 1];
+            if (nextStep) {
+                setCurrentStep(nextStep);
+            } else {
+                setCurrentStep(steps.length);
+            }
+        } else {
+            setCurrentStep(Math.min(currentStep + 1, steps.length));
+        }
     };
 
     const goBack = () => {
-        setCurrentStep((s) => Math.max(s - 1, 1));
+        if (editableSteps?.length) {
+            const currentIndex = editableSteps.indexOf(currentStep);
+            if (currentIndex > 0) {
+                setCurrentStep(editableSteps[currentIndex - 1]);
+            }
+        } else {
+            setCurrentStep((s) => Math.max(s - 1, 1));
+        }
     };
     const handleFinalSubmit = (data: AllFormData) => {
         if (isEditMode) {
-            updateRegistration(data, {
-                onSuccess: () => {
-                    router.push("/portal/profile");
-                },
-                onError: () => {
-                    alert("Failed to update. Please try again.");
-                },
-            });
+            router.push("/portal/profile");
         } else {
             submitRegistration(data, {
                 onSuccess: () => {
                     clearFormProgress();
                     router.push("/portal/search-jobs");
                 },
-                onError: () => {
-                    alert("Failed to submit. Please try again.");
-                },
+                onError: () => alert("Failed to submit. Please try again."),
             });
         }
     };
 
     const renderStep = () => {
         switch (currentStep) {
-            case 1: return <BasicDetails onNext={goNext} defaultValues={formData} lockedEmail={user?.email ?? ""} lockedName={user?.name  ?? ""} />;
+            case 1: return <BasicDetails onNext={goNext} defaultValues={formData} lockedEmail={user?.email ?? ""} lockedName={user?.name ?? ""} />;
             case 2: return <AddressDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
-            case 3: return <EducationalDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
-            case 4: return <ExperienceDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
+            case 3: return <EducationalDetails onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
+            case 4: return <ExperienceDetails onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
             case 5: return (
                 <DeclareAndSubmit
                     formData={formData}
                     onBack={goBack}
                     onSubmit={handleFinalSubmit}
-                    isLoading={submitting || updating}
+                    isLoading={submitting}
                     isEditMode={isEditMode}
                 />
             );
@@ -160,7 +161,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
             {/* ── Mobile: Horizontal Stepper (top) ── */}
             <div className="lg:hidden bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center justify-between">
-                    {steps.map(({ id, label }, index) => {
+                    {visibleSteps.map(({ id, label }, index) => {
                         const isActive = currentStep === id;
                         const isCompleted = currentStep > id;
                         const isLast = index === steps.length - 1;
@@ -199,10 +200,10 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
 
             {/* ── Desktop: Vertical Sidebar (left) ── */}
             <aside className="hidden lg:flex w-64 bg-white flex-col justify-center py-10 px-6 shrink-0">
-                {steps.map(({ id, label }, index) => {
+                {visibleSteps.map(({ id, label }, index) => {
                     const isActive = currentStep === id;
                     const isCompleted = currentStep > id;
-                    const isLast = index === steps.length - 1;
+                    const isLast = index === visibleSteps.length - 1;
 
                     return (
                         <div key={id} className="flex flex-col">

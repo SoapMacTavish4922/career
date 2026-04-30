@@ -7,6 +7,7 @@ export interface AddressBlock {
 }
 
 export interface EducationBlock {
+    id: string;
     school: string;
     degree: string;
     fieldOfStudy: string;
@@ -18,6 +19,7 @@ export interface EducationBlock {
 }
 
 export interface ExperienceBlock {
+    id: string;
     experienceType: string;
     title: string;
     designation?: string;

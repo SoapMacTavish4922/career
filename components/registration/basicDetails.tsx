@@ -1,8 +1,9 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
+import Cookies from "js-cookie";
 
 type FormData = {
     name: string;
@@ -23,6 +24,7 @@ interface Props {
     defaultValues?: any;
     lockedEmail?: string;
     lockedName?: string;
+    existingPhotoUrl?: string;
 }
 
 const ErrorText = ({ error }: { error?: any }) => {
@@ -36,14 +38,44 @@ function ProfilePhotoUpload({
     photo,
     onPhotoChange,
     error,
+    existingPhotoUrl,
 }: {
     photo: File | null;
     onPhotoChange: (f: File | null) => void;
     error?: string;
+    existingPhotoUrl?: string;
 }) {
     const inputRef = useRef<HTMLInputElement>(null);
-    const previewUrl = photo ? URL.createObjectURL(photo) : null;
+    const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
+    // ── Fetch protected photo with Bearer token ───────────────────────────────
+    useEffect(() => {
+        if (!existingPhotoUrl) return;
+        const token = Cookies.get("auth_token");
+        if (!token) return;
+
+        let objectUrl: string | null = null;
+
+        fetch(existingPhotoUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then((res) => res.blob())
+            .then((blob) => {
+                objectUrl = URL.createObjectURL(blob);
+                setBlobUrl(objectUrl);
+            })
+            .catch(() => setBlobUrl(null));
+        return () => {
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [existingPhotoUrl]);
+
+    // ── Preview priority: new file upload → fetched blob → nothing ───────────
+    const previewUrl = photo
+        ? URL.createObjectURL(photo)
+        : blobUrl ?? null;
+
+    // ── File validation ───────────────────────────────────────────────────────
     const handleFile = (f: File) => {
         if (!["image/jpeg", "image/png", "image/jpg"].includes(f.type)) {
             alert("Only JPG or PNG files are allowed.");
@@ -140,12 +172,15 @@ export default function BasicDetails({ onNext, defaultValues, lockedEmail, locke
     });
 
     const onSubmit = (data: FormData) => {
-        if (!photo) {
+        const hasExistingPhoto = !!(defaultValues?.photo_url);
+        const hasNewPhoto = !!photo;
+
+        if (!hasExistingPhoto && !hasNewPhoto) {
             setPhotoError("Profile photo is required.");
             return;
         }
         setPhotoError("");
-        onNext({ ...data, profilePhoto: photo });
+        onNext({ ...data, profilePhoto: photo ?? undefined });
     };
 
     const inputClass = (hasError: boolean) =>
@@ -169,7 +204,7 @@ export default function BasicDetails({ onNext, defaultValues, lockedEmail, locke
                     photo={photo}
                     onPhotoChange={(f) => { setPhoto(f); if (f) setPhotoError(""); }}
                     error={photoError}
-
+                    existingPhotoUrl={defaultValues?.photo_url}  // ← add
                 />
 
                 <div className="h-px bg-gray-100" />
