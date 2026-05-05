@@ -17,24 +17,34 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
-
+    const blobUrlRef = useRef<string | null>(null);
+    const lastUrlRef = useRef<string | null>(null);
     const [photoSrc, setPhotoSrc] = useState("/user.png");
 
     useEffect(() => {
         if (!user?.profilePhoto) return;
+        if (user.profilePhoto === lastUrlRef.current && blobUrlRef.current) {
+            setPhotoSrc(blobUrlRef.current);
+            return;
+        }
 
         const token = Cookies.get("auth_token");
+        if (!token) return;
 
         fetch(user.profilePhoto, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         })
-            .then(res => res.blob())
-            .then(blob => setPhotoSrc(URL.createObjectURL(blob)))
+            .then((res) => res.blob())
+            .then((blob) => {
+                if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+                const url = URL.createObjectURL(blob);
+                blobUrlRef.current = url;
+                lastUrlRef.current = user.profilePhoto!;
+                setPhotoSrc(url);
+            })
             .catch(() => setPhotoSrc("/user.png"));
-
     }, [user?.profilePhoto]);
 
-    // Compute initials from real user name
     const initials = user?.name
         ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
         : "?";
@@ -126,23 +136,6 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                             );
                         })}
                     </nav>
-                </div>
-
-                <div className="px-2 pb-4">
-                    <div onClick={handleLogout} title="Logout"
-                        className={`flex items-center py-3 rounded-xl cursor-pointer transition hover:bg-emerald-800
-                            ${collapsed
-                                ? "justify-center px-0 gap-0 group-hover:px-3 group-hover:gap-3 group-hover:justify-start"
-                                : "px-3 gap-3"}`}
-                    >
-                        <Image src="/logout.svg" alt="logout" width={18} height={18} className="shrink-0" />
-                        <span className={`text-sm transition-all duration-200
-                            ${collapsed
-                                ? "opacity-0 w-0 overflow-hidden group-hover:opacity-100 group-hover:w-auto"
-                                : "opacity-100 w-auto"}`}>
-                            Logout
-                        </span>
-                    </div>
                 </div>
             </aside>
 

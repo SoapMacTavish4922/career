@@ -18,6 +18,11 @@ const emptyExperience = (): ExperienceBlock => ({
     isCurrentJob: false,
 });
 
+const getCurrentYearMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
+
 // ── Reusable Field ──
 const Field = ({
     label, required, placeholder, value, onChange,
@@ -349,8 +354,57 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
 
     const handleSaveCard = async (index: number) => {
         const entry = entries[index];
+        const newErrors: Partial<Record<string, string>> = {};
+
+        if (!entry.experienceType) {
+            newErrors[`${index}_experienceType`] = "Please select experience type";
+        }
+
+        if (entry.experienceType === "experienced") {
+            // Job title
+            if (!entry.title.trim()) newErrors[`${index}_title`] = "Job title is required";
+
+            // Company
+            if (!entry.company.trim()) newErrors[`${index}_company`] = "Company is required";
+
+            // Location
+            if (!entry.location.trim()) newErrors[`${index}_location`] = "Location is required";
+
+            // From date
+            if (!entry.from) {
+                newErrors[`${index}_from`] = "Start date is required";
+            } else if (entry.from > getCurrentYearMonth()) {
+                newErrors[`${index}_from`] = "Start date cannot be in the future";
+            }
+
+            // To date — only required if not current job
+            if (!(entry as any).isCurrentJob) {
+                if (!entry.to) {
+                    newErrors[`${index}_to`] = "End date is required";
+                } else if (entry.to > getCurrentYearMonth()) {
+                    newErrors[`${index}_to`] = "End date cannot be in the future";
+                } else if (entry.from && entry.to < entry.from) {
+                    newErrors[`${index}_to`] = "End date must be after start date";
+                }
+            }
+
+            // Current CTC — only required for current job
+            if ((entry as any).isCurrentJob && !(entry.currentctc ?? "").toString().trim()) {
+                newErrors[`${index}_currentctc`] = "Current CTC is required";
+            }
+        }
+
+        if (entry.experienceType === "fresher") {
+            alert("Fresher has no record to update.");
+            return;
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors((p) => ({ ...p, ...newErrors }));
+            return;
+        }
+
         if (!entry.id) { alert("Cannot save — missing record ID."); return; }
-        if (entry.experienceType === "fresher") { alert("Fresher has no record to update."); return; }
 
         setSavingIndex(index);
         try {
@@ -392,7 +446,11 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
                 if (!entry.title.trim()) newErrors[`${i}_title`] = "Job title is required";
                 if (!entry.company.trim()) newErrors[`${i}_company`] = "Company is required";
                 if (!entry.location.trim()) newErrors[`${i}_location`] = "Location is required";
-                if (!entry.from) newErrors[`${i}_from`] = "Start date is required";
+                if (!entry.from) {
+                    newErrors[`${i}_from`] = "Start date is required";
+                } else if (entry.from > getCurrentYearMonth()) {
+                    newErrors[`${i}_from`] = "Start date cannot be in the future";
+                }
 
                 if (!(entry as any).isCurrentJob) {
                     if (!entry.to) newErrors[`${i}_to`] = "End date is required";
@@ -467,9 +525,9 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
                         notice={notice}
                         onNoticeChange={setNotice}
                         noticeError={errors["notice"]}
-                        isEditMode={isEditMode}              // ← add
-                        onSave={() => handleSaveCard(index)} // ← add
-                        isSaving={savingIndex === index}     // ← add
+                        isEditMode={isEditMode}
+                        onSave={() => handleSaveCard(index)}
+                        isSaving={savingIndex === index}
                         isSaved={savedIndex === index}
                     />
                 ))}
@@ -508,7 +566,7 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
                     Back
                 </button>
                 <button
-                    onClick={() => onNext({ education: entries })} // ← just pass data, no validation gate in edit mode
+                    onClick={handleSubmit}
                     className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
                 >
                     {isEditMode ? "Next" : "Save & Continue"}

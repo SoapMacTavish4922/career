@@ -16,9 +16,9 @@ export const jobsService = {
     // Called on search jobs page
     // Laravel returns paginated list { data: Job[], meta: { total, per_page, current_page } }
 
-    getAll: async (filters?: JobFilters): Promise<{ data: Job[]; meta: any }> => {
+    getAll: async (filters?: JobFilters): Promise<{ data: Job[]; last_page: number; total: number; current_page: number }> => {
         const res = await api.get(ENDPOINTS.jobs.list, { params: filters });
-        return res.data; // ← if Laravel wraps in { status, data: [...] } change to res.data.data
+        return res.data;
     },
 
     // ── Get single job by slug ────────────────────────────────────────────────
@@ -27,7 +27,7 @@ export const jobsService = {
     getBySlug: async (slug: string): Promise<Job> => {
         const res = await api.get(ENDPOINTS.jobs.detail(slug));
         console.log(res);
-        
+
         return res.data;
     },
 
@@ -44,14 +44,23 @@ export const jobsService = {
 
     getApplied: async () => {
         const res = await api.get(ENDPOINTS.jobs.applied);
-        return res.data; // ← plain array from Laravel
+        return res.data;
     },
 
     // ── Get interview schedule ────────────────────────────────────────────────
     // Called on interview schedule page
 
-    getInterviews: async () => {
-        const res = await api.get(ENDPOINTS.jobs.interviewSchedule);
+    getInterviews: async (page?: number) => {
+        const res = await api.get(ENDPOINTS.jobs.interviewSchedule, { params: { page } });
+        return res.data;
+    },
+
+
+    search: async (keyword: string, page?: number) => {
+        console.log("search keyword:", keyword); // ← add this
+        const res = await api.get(ENDPOINTS.jobs.search, {
+            params: { query: keyword, page },
+        });
         return res.data;
     },
 };

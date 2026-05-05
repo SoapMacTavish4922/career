@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useJobs } from "@/lib/hooks/useJobs";
+import { useJobs, useJobSearch } from "@/lib/hooks/useJobs";
 import { Job } from "@/lib/types/job";
 
 const toSlug = (title: string) =>
     title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -16,6 +18,13 @@ interface SidebarFilters {
     experiences: string[];
 }
 
+const experienceRanges = [
+    { label: "0-2 years", min: 0, max: 2 },
+    { label: "2-5 years", min: 2, max: 5 },
+    { label: "5-10 years", min: 5, max: 10 },
+    { label: "10-12 years", min: 10, max: 12 },
+    { label: "12-14 years", min: 12, max: 14 },
+];
 // ── Filter Section ────────────────────────────────────────────────────────────
 
 function FilterSection({ title, isOpen, onToggle, children }: {
@@ -60,6 +69,24 @@ function CheckboxOption({ label, count, checked, onChange }: {
     );
 }
 
+
+function parseExperience(exp: string): { min: number; max: number } {
+    const s = exp.toString().trim();
+
+    // "3-8" or "1-3"
+    const rangeMatch = s.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) return { min: parseInt(rangeMatch[1]), max: parseInt(rangeMatch[2]) };
+
+    // "5+" 
+    const plusMatch = s.match(/^(\d+)\+$/);
+    if (plusMatch) return { min: parseInt(plusMatch[1]), max: 99 };
+
+    // "0" or "3" — single number
+    const single = parseInt(s);
+    if (!isNaN(single)) return { min: single, max: single };
+
+    return { min: 0, max: 99 };
+}
 // ── Filter Sidebar ────────────────────────────────────────────────────────────
 // Filter counts are computed from the API response instead of ALL_JOBS
 
@@ -97,6 +124,8 @@ function FilterSidebar({ jobs, sidebarFilters, onSidebarChange }: {
         sidebarFilters.jobTypes.length +
         sidebarFilters.experiences.length;
 
+
+
     return (
         <aside className="w-full md:w-64 shrink-0 bg-white rounded-2xl border border-[#F26F24] shadow-sm p-5 self-start sticky top-4 md:p-6">
             <div className="flex items-center justify-between mb-1 pb-4 border-b border-gray-200">
@@ -133,11 +162,21 @@ function FilterSidebar({ jobs, sidebarFilters, onSidebarChange }: {
             </FilterSection>
 
             <FilterSection title="Experience" isOpen={openSections.experience} onToggle={() => toggleSection("experience")}>
-                {Object.entries(experienceCounts).map(([exp, count]) => (
-                    <CheckboxOption key={exp} label={exp} count={count}
-                        checked={sidebarFilters.experiences.includes(exp)}
-                        onChange={() => toggleArrayFilter("experiences", exp)} />
-                ))}
+                {experienceRanges.map(({ label, min, max }) => {
+                    const count = jobs.filter((job: Job) => {
+                        const { min: jMin, max: jMax } = parseExperience(String(job.experience_required));
+                        return jMin <= max && jMax >= min; // overlap check
+                    }).length;
+                    return (
+                        <CheckboxOption
+                            key={label}
+                            label={label}
+                            count={count}
+                            checked={sidebarFilters.experiences.includes(label)}
+                            onChange={() => toggleArrayFilter("experiences", label)}
+                        />
+                    );
+                })}
             </FilterSection>
         </aside>
     );
@@ -227,28 +266,46 @@ export default function SearchJobs() {
     // Bearer token attached automatically by request interceptor
     // React Query caches — won't refetch on every render
     // Passing keyword to API so backend handles search
-    const { data, isLoading, isError } = useJobs({ keyword: debouncedKeyword || undefined });
-
+    const listResult = useJobs({ page: currentPage });
+    const searchResult = useJobSearch(debouncedKeyword, currentPage);
+    const hasKeyword = !!debouncedKeyword;
+    const { data, isLoading, isError } = hasKeyword ? searchResult : listResult;
     // Laravel paginated: { data: Job[], meta: {...} }
     // If plain array: (data ?? []) as Job[]
     const allJobs = (data?.data ?? []) as Job[];
 
+    console.log("debouncedKeyword:", debouncedKeyword);
+    console.log("hasKeyword:", hasKeyword);
+
+
+    const totalPages = data?.last_page ?? 1;
+
     // Client-side sidebar filtering on top of API results
     const filtered = allJobs.filter((job) => {
+        // keyword filter — client side until backend fixes it
+        if (debouncedKeyword) {
+            const kw = debouncedKeyword.toLowerCase();
+            const matchesTitle = job.title?.toLowerCase().includes(kw);
+            const matchesDescription = job.description?.toLowerCase().includes(kw);
+            const matchesSkills = job.skills?.some((s: string) => s.toLowerCase().includes(kw));
+            if (!matchesTitle && !matchesDescription && !matchesSkills) return false;
+        }
         if (sidebarFilters.locations.length > 0 && !sidebarFilters.locations.includes(job.location))
             return false;
         if (sidebarFilters.jobTypes.length > 0 && !sidebarFilters.jobTypes.includes(job.job_type))
             return false;
-        if (sidebarFilters.experiences.length > 0 && !sidebarFilters.experiences.includes(String(job.experience_required)))
-            return false;
+        if (sidebarFilters.experiences.length > 0) {
+            const { min, max } = parseExperience(String(job.experience_required));
+            const hasOverlap = sidebarFilters.experiences.some((label) => {
+                const range = experienceRanges.find((r) => r.label === label);
+                if (!range) return false;
+                return min <= range.max && max >= range.min;
+            }); 
+            if (!hasOverlap) return false;
+        }
         return true;
     });
-
-    const totalPages = Math.ceil(filtered.length / CARDS_PER_PAGE);
-    const paginated = filtered.slice(
-        (currentPage - 1) * CARDS_PER_PAGE,
-        currentPage * CARDS_PER_PAGE
-    );
+    const total = data?.total ?? 0;
 
     const handleKeywordChange = (v: string) => {
         setKeyword(v);
@@ -340,9 +397,7 @@ export default function SearchJobs() {
                     {!isLoading && !isError && filtered.length > 0 && (
                         <>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
-                                {paginated.map((job) => (
-                                    <JobCard key={job.id} job={job} />
-                                ))}
+                                {filtered.map((job) => <JobCard key={job.id} job={job} />)}
                             </div>
 
                             {/* Pagination */}
@@ -372,7 +427,7 @@ export default function SearchJobs() {
                             )}
 
                             <p className="text-center text-xs text-gray-400 mt-3">
-                                Showing {(currentPage - 1) * CARDS_PER_PAGE + 1}–{Math.min(currentPage * CARDS_PER_PAGE, filtered.length)} of {filtered.length} jobs
+                                Showing {filtered.length} of {total} jobs
                             </p>
                         </>
                     )}

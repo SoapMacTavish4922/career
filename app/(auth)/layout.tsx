@@ -7,7 +7,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* ── Desktop: Left Hero Panel (hidden on mobile) ── */}
       <div className="relative flex-1 overflow-hidden hidden md:flex flex-col">
         <Image
-          src="/login-hero.jpg"
+          src="/hero2.jpg"
           alt="Background"
           fill
           className="object-cover"

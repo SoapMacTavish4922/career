@@ -163,11 +163,11 @@ export default function BasicDetails({ onNext, defaultValues, lockedEmail, locke
     const [photoError, setPhotoError] = useState("");
 
     const { register, handleSubmit, formState: { errors }, } = useForm<FormData>({
-        defaultValues: defaultValues ?? {
-
+        
+        defaultValues: {
             ...(defaultValues ?? {}),
             email: lockedEmail ?? defaultValues?.email ?? "",
-            name: lockedName?.split(" ")[0] ?? defaultValues?.name ?? "",
+            name: lockedName ?? defaultValues?.name ?? "",
         },
     });
 

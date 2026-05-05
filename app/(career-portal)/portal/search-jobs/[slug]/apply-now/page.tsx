@@ -257,7 +257,6 @@ export default function ApplyPage() {
             onError: (error: any) => {
                 const status = error?.response?.status;
                 if (status === 409) {
-                    // 409 = already applied
                     alert("You have already applied for this job.");
                 } else {
                     alert("Failed to submit application. Please try again.");

@@ -14,7 +14,8 @@ interface Props {
 }
 
 const emptyEducation = (): EducationBlock => ({
-    id: "", school: "", degree: "", fieldOfStudy: "", resultType: "", gpa: "", yearOfPassing: "", mode: ""
+    id: "", school: "", degree: "", otherDegree: "", fieldOfStudy: "",
+    resultType: "", gpa: "", yearOfPassing: "", mode: ""
 });
 
 // ── Reusable Field ──
@@ -239,7 +240,7 @@ const EducationCard = ({
                         value={data.yearOfPassing}
                         maxLength={4}
                         onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, ""); // only digits
+                            const val = e.target.value.replace(/\D/g, "");
                             if (val.length <= 4) {
                                 onChange(index, "yearOfPassing", val);
                             }
@@ -312,7 +313,17 @@ const EducationCard = ({
 export default function EducationalDetails({ onNext, onBack, defaultValues, isEditMode }: Props) {
     const [entries, setEntries] = useState<EducationBlock[]>(
         defaultValues?.education?.length
-            ? defaultValues.education
+            ? defaultValues.education.map((e) => ({
+                id: e.id ?? "",
+                school: e.school ?? "",
+                degree: e.degree ?? "",
+                otherDegree: e.otherDegree ?? "",
+                fieldOfStudy: e.fieldOfStudy ?? "",
+                resultType: e.resultType ?? "",
+                gpa: e.gpa ?? "",
+                yearOfPassing: e.yearOfPassing ? String(e.yearOfPassing) : "",
+                mode: e.mode ?? "",
+            }))
             : [emptyEducation()]
     );
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
@@ -320,20 +331,75 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
     const [savedIndex, setSavedIndex] = useState<number | null>(null);
     const handleSaveCard = async (index: number) => {
         const entry = entries[index];
-
-        // Validate just this entry
         const newErrors: Partial<Record<string, string>> = {};
+
+        // School
         if (!entry.school.trim()) newErrors[`${index}_school`] = "School is required";
+
+        // Degree
         if (!entry.degree.trim()) newErrors[`${index}_degree`] = "Degree is required";
-        if (!entry.yearOfPassing) newErrors[`${index}_yearOfPassing`] = "Year of passing is required";
+        if (entry.degree === "others" && !(entry.otherDegree ?? "").trim()) {
+            newErrors[`${index}_otherDegree`] = "Please specify your degree";
+        }
+
+        // Field of study
+        if (entry.degree !== "10th" && !entry.fieldOfStudy.trim()) {
+            newErrors[`${index}_fieldOfStudy`] = "Field of study is required";
+        }
+
+        // Result
+        if (entry.gpa && !entry.resultType) {
+            newErrors[`${index}_resultType`] = "Please select CGPA or Percentage";
+        }
+        if (entry.resultType && !(entry.gpa ?? "").trim()) {
+            newErrors[`${index}_gpa`] = "Please enter a value";
+        }
+        if (entry.resultType === "cgpa" && entry.gpa) {
+            const val = parseFloat(entry.gpa);
+            if (isNaN(val) || val < 0 || val > 10.0) {
+                newErrors[`${index}_gpa`] = "CGPA must be between 0 and 10.0";
+            }
+        }
+        if (entry.resultType === "percentage" && entry.gpa) {
+            const val = parseFloat(entry.gpa);
+            if (isNaN(val) || val < 0 || val > 100) {
+                newErrors[`${index}_gpa`] = "Percentage must be between 0 and 100";
+            }
+        }
+
+        // Year of passing
+        if (!entry.yearOfPassing) {
+            newErrors[`${index}_yearOfPassing`] = "Year of passing is required";
+        } else {
+            const year = parseInt(entry.yearOfPassing);
+            const currentYear = new Date().getFullYear();
+            if (isNaN(year) || year < 1950) {
+                newErrors[`${index}_yearOfPassing`] = "Enter a valid year of passing";
+            } else if (year > currentYear) {
+                newErrors[`${index}_yearOfPassing`] = `Year of passing cannot be greater than ${currentYear}`;
+            }
+        }
+        await userService.saveEducation(entry.id, {
+            ...entry,
+            yearOfPassing: entry.yearOfPassing ? parseInt(entry.yearOfPassing) : "",
+        });
+
+        // Mode
         if (!entry.mode) newErrors[`${index}_mode`] = "Mode is required";
-        if (Object.keys(newErrors).length > 0) { setErrors((p) => ({ ...p, ...newErrors })); return; }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors((p) => ({ ...p, ...newErrors }));
+            return;
+        }
 
         if (!entry.id) { alert("Cannot save — missing record ID."); return; }
 
         setSavingIndex(index);
         try {
-            await userService.saveEducation(entry.id, entry);
+            await userService.saveEducation(entry.id, {
+                ...entry,
+                yearOfPassing: entry.yearOfPassing ? parseInt(entry.yearOfPassing) : "",
+            });
             setSavedIndex(index);
             setTimeout(() => setSavedIndex(null), 2000);
         } catch {
@@ -376,8 +442,10 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
             } else {
                 const year = parseInt(entry.yearOfPassing);
                 const currentYear = new Date().getFullYear();
-                if (isNaN(year) || year > currentYear || year == currentYear) {
-                    newErrors[`${i}_yearOfPassing`] = `Year of Passing should not be greater than ${currentYear}`;
+                if (isNaN(year) || year < 1950) {
+                    newErrors[`${i}_yearOfPassing`] = "Enter a valid year of passing";
+                } else if (year > currentYear) {
+                    newErrors[`${i}_yearOfPassing`] = `Year of passing cannot be greater than ${currentYear}`;
                 }
             }
             if (!entry.mode) newErrors[`${i}_mode`] = "Mode is required"
@@ -408,7 +476,12 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
 
     const handleSubmit = () => {
         if (validate()) {
-            onNext({ education: entries });
+            onNext({
+                education: entries.map((e) => ({
+                    ...e,
+                    yearOfPassing: e.yearOfPassing ? parseInt(e.yearOfPassing) : "",
+                })),
+            });
         }
     };
 
@@ -465,7 +538,7 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
                     Back
                 </button>
                 <button
-                    onClick={() => isEditMode ? onNext({ education: entries }) : handleSubmit()}
+                    onClick={handleSubmit}
                     className="flex-1 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-3 rounded-xl transition-colors"
                 >
                     {isEditMode ? "Next" : "Save & Continue"}

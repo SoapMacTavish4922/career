@@ -101,6 +101,13 @@ export default function SignupPage() {
         }
     };
 
+    const clearOtp = () => {
+        setForm((prev) => ({ ...prev, otp: Array(6).fill("") }));
+        setTimeout(() => {
+            document.getElementById("otp-0")?.focus();
+        }, 0);
+    };
+
     const handleOtpPaste = (e: React.ClipboardEvent) => {
         e.preventDefault();
         const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
@@ -114,26 +121,29 @@ export default function SignupPage() {
         const otpValue = form.otp.join("");
         if (otpValue.length < 6)
             return setErrors({ otp: "Please enter the 6-digit OTP sent to your email ID." });
-                verifyOtp({ email: form.email, otp: otpValue }, {
-                    onSuccess: () => {
-                        // User activated — go to success
-                        setStep("success");
-                    },
-                    onError: (error: any) => {
-                        const status = error?.response?.status;
-                        if (status === 422) {
-                            setErrors({ otp: "Invalid OTP. Please try again." });
-                        } else if (status === 410) {
-                            setErrors({ otp: "OTP has expired. Please request a new one." });
-                        } else {
-                            setErrors({ otp: "Failed to verify OTP. Please try again." });
-                        }
-                    },
-                });
+        verifyOtp({ email: form.email, otp: otpValue }, {
+            onSuccess: () => {
+                setStep("success");
+            },
+            onError: (error: any) => {
+                clearOtp();
+                const status = error?.response?.status;
+                if (status === 422) {
+                    setErrors({ otp: "Invalid OTP. Please try again." });
+                } else if (status === 410) {
+                    setErrors({ otp: "OTP has expired. Please request a new one." });
+                } else {
+                    setErrors({ otp: "Failed to verify OTP. Please try again." });
+                }
+            },
+        });
+
     };
 
-    // If backend has a resend endpoint
+
     const handleResendOtp = () => {
+        clearOtp();
+        setErrors({});
         signup({ name: form.name, email: form.email, password: form.password }, {
             onSuccess: () => startResendTimer(),
             onError: () => setErrors({ otp: "Failed to resend OTP. Please try again." }),
@@ -225,7 +235,7 @@ export default function SignupPage() {
                         <div className="flex items-center justify-between text-xs text-gray-500">
                             <button
                                 type="button"
-                                onClick={() => { setStep("details"); setErrors({}); }}
+                                onClick={() => { clearOtp(); setStep("details"); setErrors({}); }}
                                 className="hover:text-gray-800 transition-colors"
                             >
                                 ← Change details

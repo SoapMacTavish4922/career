@@ -71,6 +71,13 @@ export default function ForgotPasswordPage() {
 
     // ── Step 2: Verify OTP ────────────────────────────────────────────────────
 
+    const clearOtp = () => {
+        setForm((prev) => ({ ...prev, otp: Array(6).fill("") }));
+        setTimeout(() => {
+            document.getElementById("otp-0")?.focus();
+        }, 0);
+    };
+
     const startResendTimer = () => {
         setResendTimer(30);
         const interval = setInterval(() => {
@@ -119,6 +126,7 @@ export default function ForgotPasswordPage() {
                 setStep("password");
             },
             onError: (error: any) => {
+                clearOtp();
                 const status = error?.response?.status;
                 if (status === 422) {
                     setErrors({ otp: "Invalid OTP. Please try again." });
@@ -132,11 +140,19 @@ export default function ForgotPasswordPage() {
     };
 
     const handleResendOtp = () => {
-        // POST /auth/send-otp again
+        clearOtp();
+        setErrors({});
         sendOtp(form.email, {
             onSuccess: () => startResendTimer(),
             onError: () => setErrors({ otp: "Failed to resend OTP. Please try again." }),
         });
+    };
+
+    
+    const handleBack = () => {
+        clearOtp();
+        setErrors({});
+        setStep("email");
     };
 
     // ── Step 3: Reset Password ────────────────────────────────────────────────
@@ -236,7 +252,7 @@ export default function ForgotPasswordPage() {
                         <div className="flex items-center justify-between text-xs text-gray-500">
                             <button
                                 type="button"
-                                onClick={() => { setStep("email"); setErrors({}); }}
+                                onClick={() => { clearOtp(); setStep("email"); setErrors({}); }}
                                 className="hover:text-gray-800 transition-colors"
                             >
                                 ← Change email

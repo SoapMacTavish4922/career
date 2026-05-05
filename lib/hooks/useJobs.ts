@@ -40,10 +40,10 @@ export function useAppliedJobs() {
 }
 
 // Interview schedule page
-export function useInterviews() {
+export function useInterviews(page?: number) {
     return useQuery({
-        queryKey: jobKeys.interviews,
-        queryFn: jobsService.getInterviews,
+        queryKey: [...jobKeys.interviews, page],
+        queryFn: () => jobsService.getInterviews(page),
     });
 }
 
@@ -57,6 +57,17 @@ export function useApplyJob() {
         },
     });
 }
+
+export function useJobSearch(keyword: string, page: number) {
+    return useQuery({
+        queryKey: ["jobs", "search", keyword, page],
+        queryFn: () => jobsService.search(keyword, page),
+        enabled: !!keyword,
+    });
+}
+
+
+
 export function useJobFromCache(id: string) {
     const queryClient = useQueryClient();
     const cachedData = queryClient.getQueriesData({ queryKey: ["jobs", "list"] });
@@ -68,7 +79,7 @@ export function useJobFromCache(id: string) {
         if (found) { cachedJob = found; break; }
     }
 
-    const apiResult = useJob(id); // ← passes id to GET /jobs/{id}
+    const apiResult = useJob(id);
 
     return cachedJob
         ? { data: cachedJob, isLoading: false, isError: false }

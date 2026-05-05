@@ -133,7 +133,7 @@ export const userService = {
             console.log(" Basic details saved");
 
         } catch (error: any) {
-            console.error(" Basic details failed:", error?.response?.data);
+            console.log(" Basic details failed:", error?.response?.data);
             throw new Error("Failed to save basic details. Please try again.");
         }
 
@@ -154,7 +154,7 @@ export const userService = {
             console.log(" Education saved");
 
         } catch (error: any) {
-            console.error(" Education failed:", error?.response?.data);
+            console.log(" Education failed:", error?.response?.data);
             throw new Error("Failed to save education details. Please try again.");
         }
 
@@ -189,7 +189,7 @@ export const userService = {
             console.log("Experience saved");
 
         } catch (error: any) {
-            console.error("Experience failed:", error?.response?.data);
+            console.log("Experience failed:", error?.response?.data);
             throw new Error("Failed to save experience details. Please try again.");
         }
     },

@@ -241,7 +241,6 @@ export default function DeclareAndSubmit({
         if (onSubmit) {
             onSubmit(formData as AllFormData);
         }
-        onSubmitSuccess?.();
     };
 
     /* ── Success screen ── */

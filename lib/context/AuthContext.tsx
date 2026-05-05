@@ -12,6 +12,7 @@ import Cookies from "js-cookie";
 import api, { tokenHelper } from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
 import { userService } from "@/lib/services/user.services";
+import { clearFormProgress } from "../utils/formProgress";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ interface AuthContextType {
     reLogin: (userData: Omit<User, never>, accessToken: string, refreshToken: string) => Promise<void>;
     logout: () => void;
     refreshTokens: () => Promise<boolean>;
-    triggerSessionExpiry: () => void;      // called by axios interceptor on 401
+    triggerSessionExpiry: () => void;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ── Logout ────────────────────────────────────────────────────────────────
     const logout = useCallback(() => {
         tokenHelper.clearTokens();
+        clearFormProgress();
         Cookies.remove("user_info");
         setUser(null);
         setShowSessionExpired(false);

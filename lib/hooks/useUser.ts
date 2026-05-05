@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService } from "@/lib/services/user.services";
 import { useAuth } from "@/lib/context/AuthContext";
 import Cookies from "js-cookie";
+import { clearFormProgress } from "../utils/formProgress";
+import { useRouter } from "next/navigation";
 
 export const userKeys = {
     profile: ["user", "profile"] as const,
@@ -46,31 +48,32 @@ export function useUpdatePassword() {
     });
 }
 
-// First time registration submit — marks profile as complete
+// lib/hooks/useUser.ts
 export function useSubmitRegistration() {
     const { user, setUser } = useAuth();
+    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: userService.submitRegistration,
-        onSuccess: async () => {
-            // Fetch updated profile to get photo URL
-            const profile = await userService.getProfile();
-            if (user) {
-                const updatedUser = {
-                    ...user,
-                    is_profile_complete: true,
-                    profilePhoto: profile?.photo_url ?? undefined,
-                };
-                setUser(updatedUser);
-                Cookies.set("user_info", JSON.stringify(updatedUser), {
-                    expires: 7,
-                    sameSite: "Lax",
-                    secure: process.env.NODE_ENV === "production",
-                });
+        onSuccess: async (_, __, context) => {
+            try {
+                const profile = await userService.getProfile();
+                if (user) {
+                    const updatedUser = {
+                        ...user,
+                        is_profile_complete: true,
+                        profilePhoto: (profile as any)?.photo_url ?? undefined,
+                    };
+                    setUser(updatedUser);
+                    Cookies.set("user_info", JSON.stringify(updatedUser), {
+                        expires: 7,
+                        sameSite: "Lax",
+                        secure: process.env.NODE_ENV === "production",
+                    });
+                }
+            } catch {
+                // non-fatal — profile fetch failed but registration succeeded
             }
-        },
-        onError: (error: any) => {
-            console.error("Registration failed:", error?.response?.data);
         },
     });
 }

@@ -69,13 +69,13 @@ export default function InterviewSchedule() {
     // ── Axios + React Query ───────────────────────────────────────────────────
     // useInterviews calls GET /jobs/interviews via axios
     // Bearer token attached automatically by request interceptor
-    const { data, isLoading, isError } = useInterviews();
+    const { data, isLoading, isError } = useInterviews(currentPage);
 
     // Laravel paginated: { data: Interview[], meta: {...} }
     // If Laravel returns plain array: (data ?? []) as Interview[]
     const interviews = (data?.data ?? []) as Interview[];
+    const totalPages = data?.last_page ?? 1;
 
-    const totalPages = Math.ceil(interviews.length / CARDS_PER_PAGE);
     const paginated = interviews.slice(
         (currentPage - 1) * CARDS_PER_PAGE,
         currentPage * CARDS_PER_PAGE
@@ -163,7 +163,7 @@ export default function InterviewSchedule() {
 
             {/* Results count */}
             <p className="text-center text-xs text-gray-400">
-                Showing {(currentPage - 1) * CARDS_PER_PAGE + 1}–{Math.min(currentPage * CARDS_PER_PAGE, interviews.length)} of {interviews.length} interviews
+                Showing {interviews.length} of {data?.total ?? interviews.length} interviews
             </p>
         </div>
     );

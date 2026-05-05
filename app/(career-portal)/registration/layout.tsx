@@ -60,6 +60,15 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
         setShowResumePrompt(false);
     };
 
+    useEffect(() => {
+        if (defaultValues) return;
+        const saved = loadFormProgress();
+        if (saved && saved.currentStep > 1) {
+            setSavedStep(saved.currentStep);
+            setShowResumePrompt(true);
+        }
+    }, []);
+
     // ── Save progress to localStorage on every step transition ───────────────
     const goNext = (stepData?: any) => {
         const updatedFormData = stepData
@@ -96,10 +105,12 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
         if (isEditMode) {
             router.push("/portal/profile");
         } else {
+            
             submitRegistration(data, {
-                onSuccess: () => {
+                onSuccess: async () => {
                     clearFormProgress();
-                    router.push("/portal/search-jobs");
+                    router.refresh();                      
+                    router.push("/portal/search-jobs");    
                 },
                 onError: () => alert("Failed to submit. Please try again."),
             });
@@ -129,7 +140,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col lg:flex-row">
 
-            {/* ── Resume Prompt Modal ── */}
+            {/* ── Resume Modal ── */}
             {showResumePrompt && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
                     <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full flex flex-col gap-4">
@@ -242,6 +253,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
                         </div>
                     );
                 })}
+                
             </aside>
 
             {/* ── Main Content ── */}
