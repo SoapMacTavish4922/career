@@ -32,6 +32,8 @@ export const ENDPOINTS = {
         search: "/jobs/search",
         applied: "/my-applications",
         interviewSchedule: "/jobs/interviews",
+        save: (id: string) => `/jobs/${id}/save`,
+        savedJobs: "/saved-jobs", // view_save_jobs
     },
 
     registration: {

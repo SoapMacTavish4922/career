@@ -67,7 +67,6 @@ export function useJobSearch(keyword: string, page: number) {
 }
 
 
-
 export function useJobFromCache(id: string) {
     const queryClient = useQueryClient();
     const cachedData = queryClient.getQueriesData({ queryKey: ["jobs", "list"] });
@@ -84,4 +83,21 @@ export function useJobFromCache(id: string) {
     return cachedJob
         ? { data: cachedJob, isLoading: false, isError: false }
         : apiResult;
+}
+
+export function useSavedJobsList() {
+    return useQuery({
+        queryKey: ["jobs", "saved"],
+        queryFn: jobsService.getSavedJobs,
+    });
+}
+
+export function useToggleSaveJob() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (jobId: string) => jobsService.toggleSaveJob(jobId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["jobs", "saved"] });
+        },
+    });
 }

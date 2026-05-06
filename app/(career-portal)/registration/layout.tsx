@@ -6,6 +6,7 @@ import BasicDetails from "@/components/registration/basicDetails";
 import AddressDetails from "@/components/registration/addressDetails";
 import EducationalDetails from "@/components/registration/educationalDetails";
 import ExperienceDetails from "@/components/registration/experienceDetails";
+import ResumeAndSkills from "@/components/registration/resumeAndSkills";
 import DeclareAndSubmit from "@/components/registration/submitDetails";
 import { AllFormData } from "@/lib/types/registration";
 import { saveFormProgress, loadFormProgress, clearFormProgress } from "@/lib/utils/formProgress";
@@ -17,7 +18,8 @@ const steps = [
     { id: 2, label: "Address Details" },
     { id: 3, label: "Educational details" },
     { id: 4, label: "Experience details" },
-    { id: 5, label: "Declare and Submit" },
+    { id: 5, label: "Resume & Skills" },
+    { id: 6, label: "Declare and Submit" },
 ];
 
 interface Props {
@@ -105,12 +107,12 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
         if (isEditMode) {
             router.push("/portal/profile");
         } else {
-            
+
             submitRegistration(data, {
                 onSuccess: async () => {
                     clearFormProgress();
-                    router.refresh();                      
-                    router.push("/portal/search-jobs");    
+                    router.refresh();
+                    router.push("/portal/search-jobs");
                 },
                 onError: () => alert("Failed to submit. Please try again."),
             });
@@ -123,7 +125,8 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
             case 2: return <AddressDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
             case 3: return <EducationalDetails onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
             case 4: return <ExperienceDetails onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
-            case 5: return (
+            case 5: return <ResumeAndSkills onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
+            case 6: return (
                 <DeclareAndSubmit
                     formData={formData}
                     onBack={goBack}
@@ -132,7 +135,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
                     isEditMode={isEditMode}
                 />
             );
-            // Note: call clearFormProgress() inside DeclareAndSubmit after successful API submission
+
             default: return null;
         }
     };
@@ -253,7 +256,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
                         </div>
                     );
                 })}
-                
+
             </aside>
 
             {/* ── Main Content ── */}

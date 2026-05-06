@@ -63,4 +63,14 @@ export const jobsService = {
         });
         return res.data;
     },
+
+    toggleSaveJob: async (jobId: string) => {
+        const res = await api.post(ENDPOINTS.jobs.save(jobId));
+        return res.data;
+    },
+    getSavedJobs: async () => {
+        const res = await api.get(ENDPOINTS.jobs.savedJobs);
+        return res.data;
+    },
 };
+

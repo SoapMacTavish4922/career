@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useJobs, useJobSearch } from "@/lib/hooks/useJobs";
+import { useJobs, useJobSearch, useSavedJobsList, useToggleSaveJob } from "@/lib/hooks/useJobs";
 import { Job } from "@/lib/types/job";
+
 
 const toSlug = (title: string) =>
     title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -207,15 +208,30 @@ function FilterDropdown({ keyword, setKeyword }: { keyword: string; setKeyword: 
 
 // ── Job Card ──────────────────────────────────────────────────────────────────
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job, savedJobIds }: { job: Job; savedJobIds: string[] }) {
     const router = useRouter();
+    const { mutate: toggleSaveJob, isPending } = useToggleSaveJob();
+    const isSaved = savedJobIds.includes(job.id);
+
     return (
         <div className="bg-white border border-[#F26F24] rounded-xl p-5 flex flex-col gap-3">
-            <h3 className="text-sm md:text-base font-semibold">{job.title}</h3>
+            <div className="flex items-start justify-between gap-2">
+                <h3 className="text-sm md:text-base font-semibold">{job.title}</h3>
+                <button
+                    onClick={() => toggleSaveJob(job.id)}
+                    disabled={isPending}
+                    className="shrink-0 text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-50"
+                    title={isSaved ? "Remove from saved" : "Save job"}
+                >
+                    <svg width="18" height="18" fill={isSaved ? "#F26F24" : "none"}
+                        stroke={isSaved ? "#F26F24" : "currentColor"} strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                    </svg>
+                </button>
+            </div>
             <span className="text-xs text-gray-500">{job.location}</span>
             <p className="text-xs text-gray-500 line-clamp-2">{job.description}</p>
             <button
-
                 onClick={() => router.push(`/portal/search-jobs/${toSlug(job.title)}?id=${job.id}`)}
                 className="mt-auto self-end text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-lg transition-colors"
             >
@@ -248,6 +264,8 @@ const CARDS_PER_PAGE = 10;
 export default function SearchJobs() {
     const [keyword, setKeyword] = useState("");
     const [debouncedKeyword, setDebouncedKeyword] = useState("");
+    const { data: savedData } = useSavedJobsList();
+    const savedJobIds = (savedData?.data ?? []).map((j: any) => j.id) as string[];
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -300,7 +318,7 @@ export default function SearchJobs() {
                 const range = experienceRanges.find((r) => r.label === label);
                 if (!range) return false;
                 return min <= range.max && max >= range.min;
-            }); 
+            });
             if (!hasOverlap) return false;
         }
         return true;
@@ -397,7 +415,7 @@ export default function SearchJobs() {
                     {!isLoading && !isError && filtered.length > 0 && (
                         <>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
-                                {filtered.map((job) => <JobCard key={job.id} job={job} />)}
+                                {filtered.map((job) => <JobCard key={job.id} job={job} savedJobIds={savedJobIds} />)}
                             </div>
 
                             {/* Pagination */}

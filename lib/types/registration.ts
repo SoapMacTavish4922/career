@@ -15,7 +15,7 @@ export interface EducationBlock {
     gpa: string;
     otherDegree?: string;
     yearOfPassing: string;
-    mode:          string;
+    mode: string;
 }
 
 export interface ExperienceBlock {
@@ -43,8 +43,8 @@ export interface CertificationBlock {
 
 export interface AllFormData {
     name?: string;
-    fatherName?:  string;   // ← add
-    motherName?:  string;
+    fatherName?: string;
+    motherName?: string;
     email?: string;
     altEmail?: string;
     phone?: string;
@@ -56,5 +56,7 @@ export interface AllFormData {
     sameAsPermanent?: boolean;
     education?: EducationBlock[];
     experience?: ExperienceBlock[];
+    resume?: File | null;
+    skill?: string[];
     certifications?: CertificationBlock[];
 }

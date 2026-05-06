@@ -6,11 +6,26 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import { authService } from "@/lib/services/auth.services";
 import Cookies from "js-cookie";
+import { useSavedJobsList } from "@/lib/hooks/useJobs";
 
 export default function MainLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
     const { user, logout } = useAuth();
+
+    const { data: savedData } = useSavedJobsList();
+    const savedCount = (savedData?.data ?? []).length;
+    const [savedOpen, setSavedOpen] = useState(false);
+    const savedRef = useRef<HTMLDivElement>(null);
+
+    const handleClickOutside = (e: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
+            setDropdownOpen(false);
+        if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node))
+            setMobileMenuOpen(false);
+        if (savedRef.current && !savedRef.current.contains(e.target as Node))
+            setSavedOpen(false);  // ← add this
+    };
 
     const collapsed = pathname.includes("/edit-details");
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -185,6 +200,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                         )}
                     </div>
 
+
                     {/* ── Profile dropdown ── */}
                     <div className="relative" ref={dropdownRef}>
                         <button onClick={() => setDropdownOpen((p) => !p)}
@@ -216,6 +232,14 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
                                         <Image src="/user.svg" alt="profile" width={16} height={16} className="shrink-0" />
                                         My Profile
+                                    </button>
+                                    <div className="mx-3 my-1 h-px bg-gray-100" />
+                                    <button onClick={() => { setDropdownOpen(false); router.push("/portal/saved-jobs"); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left">
+                                        <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                                        </svg>
+                                        Saved Jobs
                                     </button>
                                     <div className="mx-3 my-1 h-px bg-gray-100" />
                                     <button onClick={handleEditDetails}
