@@ -116,7 +116,7 @@ const EducationCard = ({
                             onChange(index, "otherDegree", "");
                         }
                     }}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm"
+                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full"
                 >
                     <option value="">Select Degree</option>
                     <option value="10th">10th (SSC)</option>
@@ -150,7 +150,7 @@ const EducationCard = ({
                         onChange={(e) =>
                             onChange(index, "otherDegree", e.target.value)
                         }
-                        className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm"
+                        className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full"
                     />
 
                     {errors[`${index}_otherDegree`] && (
@@ -184,7 +184,7 @@ const EducationCard = ({
                 <div className="flex gap-3 items-start">
 
                     {/* Dropdown: CGPA or Percentage */}
-                    <div className="w-40 flex flex-col gap-0.5">
+                    <div className="flex-1 flex flex-col gap-0.5">
                         <select
                             value={data.resultType}
                             onChange={(e) => {
@@ -208,7 +208,7 @@ const EducationCard = ({
 
                     {/* Value input — only shows after type is selected */}
                     {data.resultType && (
-                        <div className="w-36 flex flex-col gap-0.5">
+                        <div className="flex-1 flex flex-col gap-0.5">
                             <Field
                                 placeholder={data.resultType === "cgpa" ? "0.0 – 10.0" : "0 – 100"}
                                 value={data.gpa}
@@ -229,7 +229,7 @@ const EducationCard = ({
             </div>
 
             {/* Year of Passing + Mode */}
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 flex flex-col gap-1">
                     <label className="text-sm text-gray-700">
                         Year of Passing <span className="text-red-500">*</span>

@@ -26,8 +26,6 @@ export const jobsService = {
 
     getBySlug: async (slug: string): Promise<Job> => {
         const res = await api.get(ENDPOINTS.jobs.detail(slug));
-        console.log(res);
-
         return res.data;
     },
 
@@ -51,13 +49,14 @@ export const jobsService = {
     // Called on interview schedule page
 
     getInterviews: async (page?: number) => {
-        const res = await api.get(ENDPOINTS.jobs.interviewSchedule, { params: { page } });
-        return res.data;
+        const res = await api.get(ENDPOINTS.jobs.interviewSchedule, {
+            params: { page }
+        });
+        return res.data.data; 
     },
 
 
     search: async (keyword: string, page?: number) => {
-        console.log("search keyword:", keyword); // ← add this
         const res = await api.get(ENDPOINTS.jobs.search, {
             params: { query: keyword, page },
         });

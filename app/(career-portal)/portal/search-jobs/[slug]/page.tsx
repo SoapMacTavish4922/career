@@ -103,10 +103,6 @@ export default function JobDetailPage() {
 
     const { data: job, isLoading, isError } = useJobFromCache(id);
 
-    console.log("Job data:", job);
-    console.log("isLoading:", isLoading);
-    console.log("isError:", isError);
-
     // ── Loading state ─────────────────────────────────────────────────────────
     if (isLoading) return (
         <div className="p-6">

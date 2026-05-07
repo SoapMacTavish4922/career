@@ -176,7 +176,6 @@ export default function ForgotPasswordPage() {
             },
             {
                 onSuccess: (data) => {
-                    console.log("verify-forgot-otp response:", data); // ← check this
                     setResetToken(data.reset_token);
                     setStep("success");
                 },

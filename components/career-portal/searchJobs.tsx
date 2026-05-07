@@ -292,9 +292,6 @@ export default function SearchJobs() {
     // If plain array: (data ?? []) as Job[]
     const allJobs = (data?.data ?? []) as Job[];
 
-    console.log("debouncedKeyword:", debouncedKeyword);
-    console.log("hasKeyword:", hasKeyword);
-
 
     const totalPages = data?.last_page ?? 1;
 

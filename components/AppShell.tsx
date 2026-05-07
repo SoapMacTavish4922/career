@@ -1,23 +1,22 @@
-"use client"; 
+"use client";
 
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { setSessionExpiryHandler } from "@/lib/api/client";
 import SessionExpiredOverlay from "@/components/career-portal/SessionExpiryOverlay";
-import { usePathname } from "next/navigation";           // ← add useRef
-import api from "@/lib/api/client";                  // ← add api
-import { ENDPOINTS } from "@/lib/api/endpoints";     // ← add ENDPOINTS
+import { usePathname } from "next/navigation";
+import api from "@/lib/api/client";
+import { ENDPOINTS } from "@/lib/api/endpoints";
 
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password"];
+const INACTIVE_LIMIT = 15 * 60 * 1000;      // 15 min inactivity → show session expired
+const HEARTBEAT_INTERVAL = 10 * 60 * 1000;  // ping every 10 min if active
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-
     const isAuthPage = AUTH_ROUTES.some((r) => pathname.startsWith(r));
-    const { triggerSessionExpiry, isLoggedIn } = useAuth(); 
+    const { triggerSessionExpiry, isLoggedIn } = useAuth();
     const lastActivityRef = useRef<number>(Date.now());
-    const INACTIVE_LIMIT = 30 * 60 * 1000;  // 30 min — if no activity skip ping
-
 
     useEffect(() => {
         setSessionExpiryHandler(triggerSessionExpiry);
@@ -38,14 +37,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         const interval = setInterval(async () => {
             const timeSinceActivity = Date.now() - lastActivityRef.current;
-            if (timeSinceActivity > INACTIVE_LIMIT) return;
+
+            // User inactive for 15 mins → show session expired overlay
+            if (timeSinceActivity > INACTIVE_LIMIT) {
+                triggerSessionExpiry();
+                return;
+            }
+
+            // User is active → send heartbeat to keep session alive
             try {
                 await api.post(ENDPOINTS.auth.heartbeat);
             } catch (error: any) {
                 console.warn("Heartbeat failed:", error?.response?.status);
-                // axios interceptor handles token refresh
+                // axios interceptor handles 401 → token refresh or session expiry
             }
-        }, 20 * 60 * 1000);
+        }, HEARTBEAT_INTERVAL);
 
         return () => {
             clearInterval(interval);

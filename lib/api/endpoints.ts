@@ -2,6 +2,8 @@
 // Single source of truth for all Laravel routes
 // Change endpoint once here — updates everywhere
 
+import { resume } from "react-dom/server";
+
 export const ENDPOINTS = {
 
     auth: {
@@ -31,7 +33,7 @@ export const ENDPOINTS = {
         apply: (id: string) => `/jobs/${id}/apply`,
         search: "/jobs/search",
         applied: "/my-applications",
-        interviewSchedule: "/jobs/interviews",
+        interviewSchedule: "/jobs/interview-scheduled",
         save: (id: string) => `/jobs/${id}/save`,
         savedJobs: "/saved-jobs", // view_save_jobs
     },
@@ -40,6 +42,8 @@ export const ENDPOINTS = {
         basicDetails: "/candidate/basic-details",
         education: "/education",
         experience: "/employment",
+        resume: "/candidate/upload-resume",
+        skills: "/candidate/skills"
         //update: "/update",
     },
 

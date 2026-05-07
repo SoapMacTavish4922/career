@@ -11,7 +11,7 @@ export const userService = {
     getProfile: async () => {
         const res = await api.get(ENDPOINTS.user.profile);
         const raw = res.data.data;
-        console.log("data", res);
+        
 
 
         return {
@@ -192,6 +192,36 @@ export const userService = {
             console.log("Experience failed:", error?.response?.data);
             throw new Error("Failed to save experience details. Please try again.");
         }
+
+        // ── Call 4: Resume ────────────────────────────────────────────────────────
+        try {
+            if (data.resume instanceof File) {
+                const resumeFormData = new FormData();
+                resumeFormData.append("resume", data.resume);
+                await api.post(ENDPOINTS.registration.resume, resumeFormData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                console.log("Resume saved");
+            }
+        } catch (error: any) {
+            console.log("Resume failed:", error?.response?.data);
+            throw new Error("Failed to upload resume. Please try again.");
+        }
+
+        // ── Call 5: Skills ────────────────────────────────────────────────────────
+        try {
+            if (data.skills?.length > 0) {
+                await api.post(ENDPOINTS.registration.skills, {
+                    skills: data.skills,
+                });
+                console.log("Skills saved");
+            }
+        } catch (error: any) {
+            console.log("Skills failed:", error?.response?.data);
+            throw new Error("Failed to save skills. Please try again.");
+        }
+
+
     },
 
     // ── Update registration ───────────────────────────────────────────────────

@@ -18,8 +18,8 @@ const steps = [
     { id: 2, label: "Address Details" },
     { id: 3, label: "Educational details" },
     { id: 4, label: "Experience details" },
-    { id: 5, label: "Resume & Skills" },
-    { id: 6, label: "Declare and Submit" },
+    //{ id: 5, label: "Resume & Skills" },
+    { id: 5, label: "Declare and Submit" },
 ];
 
 interface Props {
@@ -125,8 +125,8 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
             case 2: return <AddressDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
             case 3: return <EducationalDetails onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
             case 4: return <ExperienceDetails onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
-            case 5: return <ResumeAndSkills onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
-            case 6: return (
+           // case 5: return <ResumeAndSkills onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
+            case 5: return (
                 <DeclareAndSubmit
                     formData={formData}
                     onBack={goBack}
@@ -141,7 +141,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col lg:flex-row">
+        <div className="min-h-screen bg-gray-100 flex flex-col lg:flex-row overflow-hidden">
 
             {/* ── Resume Modal ── */}
             {showResumePrompt && (
@@ -173,38 +173,38 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
             )}
 
             {/* ── Mobile: Horizontal Stepper (top) ── */}
-            <div className="lg:hidden bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-10 shadow-sm">
-                <div className="flex items-center justify-between">
+            <div className="lg:hidden bg-white border-b border-gray-100 px-3 py-3 sticky top-0 z-10 shadow-sm -mx-4 -mt-4 mb-4">
+                <div className="flex items-center w-full">
                     {visibleSteps.map(({ id, label }, index) => {
                         const isActive = currentStep === id;
                         const isCompleted = currentStep > id;
-                        const isLast = index === steps.length - 1;
+                        const isLast = index === visibleSteps.length - 1;
 
                         return (
-                            <div key={id} className="flex items-center flex-1">
-                                <div className="flex flex-col items-center gap-1 flex-1">
-                                    <div className="flex items-center justify-center">
-                                        {isActive ? (
-                                            <div className="h-7 w-7 rounded-full bg-white border-2 border-emerald-700 flex items-center justify-center shadow-[0_0_8px_3px_rgba(5,150,105,0.6)]">
-                                                <div className="h-3 w-3 rounded-full bg-emerald-600" />
-                                            </div>
-                                        ) : isCompleted ? (
-                                            <div className="h-9 w-9 rounded-full bg-emerald-600 flex items-center justify-center">
-                                                <div className="h-4 w-4 rounded-full bg-white" />
-                                            </div>
-                                        ) : (
-                                            <div className="h-7 w-7 rounded-full border-2 border-gray-300 flex items-center justify-center bg-white">
-                                                <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <span className={`text-[9px] text-center leading-tight w-14 break-words
-                                        ${isActive ? "text-emerald-700 font-bold" : isCompleted ? "text-gray-500" : "text-gray-300"}`}>
-                                        {label}
+                            <div key={id} className="flex items-center flex-1 min-w-0">
+                                <div className="flex flex-col items-center gap-1 min-w-0 shrink-0">
+                                    {isActive ? (
+                                        <div className="h-6 w-6 rounded-full bg-white border-2 border-emerald-700 flex items-center justify-center shadow-[0_0_8px_3px_rgba(5,150,105,0.6)]">
+                                            <span className="text-[9px] font-bold text-emerald-700">{id}</span>
+                                        </div>
+                                    ) : isCompleted ? (
+                                        <div className="h-6 w-6 rounded-full bg-emerald-600 flex items-center justify-center">
+                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    ) : (
+                                        <div className="h-6 w-6 rounded-full border-2 border-gray-300 flex items-center justify-center bg-white">
+                                            <span className="text-[9px] text-gray-400">{id}</span>
+                                        </div>
+                                    )}
+                                    <span className={`text-[8px] text-center leading-tight max-w-[40px] truncate
+                            ${isActive ? "text-emerald-700 font-bold" : isCompleted ? "text-gray-500" : "text-gray-300"}`}>
+                                        {label.split(" ")[0]}
                                     </span>
                                 </div>
                                 {!isLast && (
-                                    <div className={`h-[2px] flex-1 mb-4 rounded-full ${isCompleted ? "bg-emerald-500" : "bg-gray-200"}`} />
+                                    <div className={`h-[2px] flex-1 rounded-full mx-1 mb-4 ${isCompleted ? "bg-emerald-500" : "bg-gray-200"}`} />
                                 )}
                             </div>
                         );
@@ -249,7 +249,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
                             {!isLast && (
                                 <div className="flex">
                                     <div className="w-10 flex justify-center">
-                                        <div className={`w-[2px] h-10 mt-1 ${isCompleted ? "bg-emerald-600" : "bg-gray-200"}`} />
+                                        <div className={`w-0.5 h-10 mt-1 mb-1 ${isCompleted ? "bg-emerald-600" : "bg-gray-200"}`} />
                                     </div>
                                 </div>
                             )}
@@ -260,8 +260,8 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
             </aside>
 
             {/* ── Main Content ── */}
-            <div className="flex-1 flex justify-center items-start bg-gray-100 lg:rounded-3xl lg:overflow-hidden lg:my-3 lg:mr-3">
-                <main className="w-full lg:max-w-3xl bg-white lg:rounded-2xl shadow-md p-6 lg:p-10 lg:my-6 min-h-screen lg:min-h-0">
+            <div className="flex-1 flex justify-center items-start bg-gray-100 lg:rounded-3xl lg:overflow-hidden lg:my-3 lg:mr-3 overflow-hidden">
+                <main className="w-full lg:max-w-3xl bg-white lg:rounded-2xl shadow-md p-4 lg:p-10 lg:my-6 min-h-screen lg:min-h-0 overflow-hidden">
                     {renderStep()}
                 </main>
             </div>

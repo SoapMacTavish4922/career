@@ -208,7 +208,6 @@ function ApplyPageSkeleton() {
 
 export default function ApplyPage() {
     const { user: authUser } = useAuth();
-    console.log("authUser:", authUser);
     const params = useParams();
     const router = useRouter();
     const slug = String(params.slug);

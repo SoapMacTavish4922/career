@@ -2,8 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService } from "@/lib/services/user.services";
 import { useAuth } from "@/lib/context/AuthContext";
 import Cookies from "js-cookie";
-import { clearFormProgress } from "../utils/formProgress";
-import { useRouter } from "next/navigation";
+
 
 export const userKeys = {
     profile: ["user", "profile"] as const,

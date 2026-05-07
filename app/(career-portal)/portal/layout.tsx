@@ -34,7 +34,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     const mobileMenuRef = useRef<HTMLDivElement>(null);
     const blobUrlRef = useRef<string | null>(null);
     const lastUrlRef = useRef<string | null>(null);
-    const [photoSrc, setPhotoSrc] = useState("/user.png");
+    const [photoSrc, setPhotoSrc] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user?.profilePhoto) return;
@@ -207,11 +207,17 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                             className="flex items-center gap-2.5 cursor-pointer group">
                             {/* Avatar — shows profile photo if available, else initials */}
                             <div className="w-9 h-9 rounded-full shrink-0 ring-2 ring-transparent group-hover:ring-[#006256]/30 transition-all overflow-hidden">
-                                <img
-                                    src={photoSrc}
-                                    alt={user?.name ?? "Profile"}
-                                    className="w-full h-full object-cover rounded-full"
-                                />
+                                {photoSrc ? (
+                                    <img
+                                        src={photoSrc}
+                                        alt={user?.name ?? "Profile"}
+                                        className="w-full h-full object-cover rounded-full"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full rounded-full bg-[#006256] flex items-center justify-center">
+                                        <span className="text-xs font-bold text-white">{initials}</span>
+                                    </div>
+                                )}
                             </div>
                             <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

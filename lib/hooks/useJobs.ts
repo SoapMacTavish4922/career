@@ -31,16 +31,14 @@ export function useAppliedJobs() {
     return useQuery({
         queryKey: jobKeys.applied,
         queryFn: async () => {
-            console.log("Fetching applied jobs..."); // ← add this
             const res = await jobsService.getApplied();
-            console.log("Response:", res);           // ← and this
             return res;
         },
     });
 }
 
 // Interview schedule page
-export function useInterviews(page?: number) {
+export function useInterviews(page: number = 1) {
     return useQuery({
         queryKey: [...jobKeys.interviews, page],
         queryFn: () => jobsService.getInterviews(page),
