@@ -226,7 +226,7 @@ export default function ForgotPasswordPage() {
                     <form onSubmit={handleEmailSubmit} noValidate className="flex flex-col gap-4">
                         <Field
                             label="Registered Email ID" name="email" type="email"
-                            placeholder="eg. joe@gmail.com"
+                            placeholder="eg. Nayeon@gmail.com"
                             value={form.email}
                             onChange={(v) => { update("email", v); clearError("email"); }}
                             error={errors.email} required

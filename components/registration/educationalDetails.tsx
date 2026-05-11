@@ -5,7 +5,6 @@ import { allowOnlyLetters, allowDecimal, allowOnlyNumbers } from "@/lib/utils/ke
 import { EducationBlock } from "@/lib/types/registration";
 import { userService } from "@/lib/services/user.services";
 
-
 interface Props {
     onNext: (data?: any) => void;
     onBack: () => void;
@@ -45,10 +44,9 @@ const Field = ({
     </div>
 );
 
-
 // ── Single Education Entry Card ──
 const EducationCard = ({
-    index, data, onChange, onDelete, errors, showDelete, onSave, isSaving, isSaved, isEditMode
+    index, data, onChange, onDelete, errors, showDelete, onSave, isSaving, isSaved, isEditMode, usedDegrees,
 }: {
     index: number;
     data: EducationBlock;
@@ -60,12 +58,13 @@ const EducationCard = ({
     isSaving?: boolean;
     isSaved?: boolean;
     isEditMode?: boolean;
+    usedDegrees: string[];
 }) => {
     const isOther = data.degree === "others";
     const is10th = data.degree === "10th";
+
     return (
         <div className="flex flex-col gap-4 pb-6 border-b border-gray-200 last:border-none">
-
 
             <div className="flex flex-col gap-1">
                 <div className="flex justify-between items-center">
@@ -79,7 +78,6 @@ const EducationCard = ({
                             className="text-gray-400 hover:text-red-500 transition-colors"
                             title="Delete"
                         >
-                            {/* Trash icon SVG */}
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="3 6 5 6 21 6" />
@@ -103,60 +101,48 @@ const EducationCard = ({
                 <label className="text-sm text-gray-700">
                     Degree <span className="text-red-500">*</span>
                 </label>
-
                 <select
                     value={data.degree}
                     onChange={(e) => {
                         const value = e.target.value;
-
                         onChange(index, "degree", value);
-
-
                         if (value !== "others") {
                             onChange(index, "otherDegree", "");
                         }
                     }}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full"
+                    className={`border rounded-lg px-4 py-2.5 text-sm w-full focus:outline-none focus:ring-2
+                        ${errors[`${index}_degree`] ? "border-red-400 focus:ring-red-300" : "border-gray-300 focus:ring-teal-400"}`}
                 >
                     <option value="">Select Degree</option>
-                    <option value="10th">10th (SSC)</option>
-                    <option value="12th">12th (HSC)</option>
-                    <option value="diploma">Diploma</option>
-                    <option value="bachelors">Bachelor's</option>
-                    <option value="masters">Master's</option>
-                    <option value="phd">PhD</option>
-                    <option value="technical">Technical Diploma</option>
-                    <option value="others">Others</option>
+                    {(data.degree === "10th" || !usedDegrees.includes("10th")) && <option value="10th">10th (SSC)</option>}
+                    {(data.degree === "12th" || !usedDegrees.includes("12th")) && <option value="12th">12th (HSC)</option>}
+                    {(data.degree === "diploma" || !usedDegrees.includes("diploma")) && <option value="diploma">Diploma</option>}
+                    {(data.degree === "bachelors" || !usedDegrees.includes("bachelors")) && <option value="bachelors">Bachelor's</option>}
+                    {(data.degree === "masters" || !usedDegrees.includes("masters")) && <option value="masters">Master's</option>}
+                    {(data.degree === "phd" || !usedDegrees.includes("phd")) && <option value="phd">PhD</option>}
+                    {(data.degree === "technical" || !usedDegrees.includes("technical")) && <option value="technical">Technical Diploma</option>}
+                    {(data.degree === "others" || !usedDegrees.includes("others")) && <option value="others">Others</option>}
                 </select>
-
                 {errors[`${index}_degree`] && (
-                    <p className="text-red-500 text-sm">
-                        {errors[`${index}_degree`]}
-                    </p>
+                    <p className="text-red-500 text-xs">{errors[`${index}_degree`]}</p>
                 )}
             </div>
 
-            {/* ✅ CONDITIONAL FIELD */}
+            {/* Specify Degree — only if others */}
             {isOther && (
                 <div className="flex flex-col gap-1">
                     <label className="text-sm text-gray-700">
                         Specify Degree <span className="text-red-500">*</span>
                     </label>
-
                     <input
                         type="text"
                         placeholder="Enter your degree"
                         value={data.otherDegree || ""}
-                        onChange={(e) =>
-                            onChange(index, "otherDegree", e.target.value)
-                        }
+                        onChange={(e) => onChange(index, "otherDegree", e.target.value)}
                         className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full"
                     />
-
                     {errors[`${index}_otherDegree`] && (
-                        <p className="text-red-500 text-sm">
-                            {errors[`${index}_otherDegree`]}
-                        </p>
+                        <p className="text-red-500 text-xs">{errors[`${index}_otherDegree`]}</p>
                     )}
                 </div>
             )}
@@ -177,22 +163,21 @@ const EducationCard = ({
                 </div>
             )}
 
-            {/* Result Type + Value */}
+            {/* Result Type + Value — both mandatory */}
             <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-700">Overall Result</label>
-
+                <label className="text-sm text-gray-700">
+                    Overall Result <span className="text-red-500">*</span>
+                </label>
                 <div className="flex gap-3 items-start">
-
-                    {/* Dropdown: CGPA or Percentage */}
                     <div className="flex-1 flex flex-col gap-0.5">
                         <select
                             value={data.resultType}
                             onChange={(e) => {
                                 onChange(index, "resultType", e.target.value);
-                                onChange(index, "gpa", ""); // clear value on switch
+                                onChange(index, "gpa", "");
                             }}
                             className={`border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2
-          ${errors[`${index}_resultType`]
+                                ${errors[`${index}_resultType`]
                                     ? "border-red-400 focus:ring-red-300"
                                     : "border-gray-300 focus:ring-teal-400"
                                 }`}
@@ -206,7 +191,6 @@ const EducationCard = ({
                         )}
                     </div>
 
-                    {/* Value input — only shows after type is selected */}
                     {data.resultType && (
                         <div className="flex-1 flex flex-col gap-0.5">
                             <Field
@@ -224,7 +208,6 @@ const EducationCard = ({
                             />
                         </div>
                     )}
-
                 </div>
             </div>
 
@@ -247,7 +230,7 @@ const EducationCard = ({
                         }}
                         onKeyDown={allowOnlyNumbers}
                         className={`border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2
-        ${errors[`${index}_yearOfPassing`]
+                            ${errors[`${index}_yearOfPassing`]
                                 ? "border-red-400 focus:ring-red-300"
                                 : "border-gray-300 focus:ring-teal-400"
                             }`}
@@ -265,7 +248,7 @@ const EducationCard = ({
                         value={data.mode}
                         onChange={(e) => onChange(index, "mode", e.target.value)}
                         className={`border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2
-                ${errors[`${index}_mode`]
+                            ${errors[`${index}_mode`]
                                 ? "border-red-400 focus:ring-red-300"
                                 : "border-gray-300 focus:ring-teal-400"
                             }`}
@@ -307,7 +290,7 @@ const EducationCard = ({
                 </button>
             )}
         </div>
-    )
+    );
 };
 
 export default function EducationalDetails({ onNext, onBack, defaultValues, isEditMode }: Props) {
@@ -329,63 +312,74 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [savedIndex, setSavedIndex] = useState<number | null>(null);
-    const handleSaveCard = async (index: number) => {
-        const entry = entries[index];
-        const newErrors: Partial<Record<string, string>> = {};
 
-        // School
-        if (!entry.school.trim()) newErrors[`${index}_school`] = "School is required";
+    // ── Compute used degrees excluding current card's own degree ──────────────
+    const getUsedDegrees = (currentIndex: number) =>
+        entries
+            .filter((_, i) => i !== currentIndex)
+            .map((e) => e.degree)
+            .filter(Boolean);
 
-        // Degree
-        if (!entry.degree.trim()) newErrors[`${index}_degree`] = "Degree is required";
+    // ── Shared validation logic used by both validate() and handleSaveCard() ──
+    const validateEntry = (entry: EducationBlock, key: number, newErrors: Partial<Record<string, string>>) => {
+        // Duplicate degree check
+        const allDegrees = entries.map((e) => e.degree).filter(Boolean);
+        const duplicateDegrees = allDegrees.filter((d, idx) => allDegrees.indexOf(d) !== idx);
+        if (entry.degree && duplicateDegrees.includes(entry.degree)) {
+            newErrors[`${key}_degree`] = "This degree has already been added";
+        }
+
+        if (!entry.school.trim()) newErrors[`${key}_school`] = "School is required";
+        if (!entry.degree.trim()) newErrors[`${key}_degree`] = "Degree is required";
         if (entry.degree === "others" && !(entry.otherDegree ?? "").trim()) {
-            newErrors[`${index}_otherDegree`] = "Please specify your degree";
+            newErrors[`${key}_otherDegree`] = "Please specify your degree";
         }
-
-        // Field of study
         if (entry.degree !== "10th" && !entry.fieldOfStudy.trim()) {
-            newErrors[`${index}_fieldOfStudy`] = "Field of study is required";
+            newErrors[`${key}_fieldOfStudy`] = "Field of study is required";
         }
 
-        // Result
-        if (entry.gpa && !entry.resultType) {
-            newErrors[`${index}_resultType`] = "Please select CGPA or Percentage";
+        // Result — mandatory
+        if (!entry.resultType) {
+            newErrors[`${key}_resultType`] = "Result type is required";
         }
         if (entry.resultType && !(entry.gpa ?? "").trim()) {
-            newErrors[`${index}_gpa`] = "Please enter a value";
+            newErrors[`${key}_gpa`] = "Please enter a value";
         }
         if (entry.resultType === "cgpa" && entry.gpa) {
             const val = parseFloat(entry.gpa);
             if (isNaN(val) || val < 0 || val > 10.0) {
-                newErrors[`${index}_gpa`] = "CGPA must be between 0 and 10.0";
+                newErrors[`${key}_gpa`] = "CGPA must be between 0 and 10.0";
             }
         }
         if (entry.resultType === "percentage" && entry.gpa) {
             const val = parseFloat(entry.gpa);
             if (isNaN(val) || val < 0 || val > 100) {
-                newErrors[`${index}_gpa`] = "Percentage must be between 0 and 100";
+                newErrors[`${key}_gpa`] = "Percentage must be between 0 and 100";
             }
         }
 
         // Year of passing
         if (!entry.yearOfPassing) {
-            newErrors[`${index}_yearOfPassing`] = "Year of passing is required";
+            newErrors[`${key}_yearOfPassing`] = "Year of passing is required";
         } else {
             const year = parseInt(entry.yearOfPassing);
             const currentYear = new Date().getFullYear();
             if (isNaN(year) || year < 1950) {
-                newErrors[`${index}_yearOfPassing`] = "Enter a valid year of passing";
+                newErrors[`${key}_yearOfPassing`] = "Enter a valid year of passing";
             } else if (year > currentYear) {
-                newErrors[`${index}_yearOfPassing`] = `Year of passing cannot be greater than ${currentYear}`;
+                newErrors[`${key}_yearOfPassing`] = `Year of passing cannot be greater than ${currentYear}`;
             }
         }
-        await userService.saveEducation(entry.id, {
-            ...entry,
-            yearOfPassing: entry.yearOfPassing ? parseInt(entry.yearOfPassing) : "",
-        });
 
-        // Mode
-        if (!entry.mode) newErrors[`${index}_mode`] = "Mode is required";
+        if (!entry.mode) newErrors[`${key}_mode`] = "Mode is required";
+    };
+
+    // ── Save card (edit mode) ─────────────────────────────────────────────────
+    const handleSaveCard = async (index: number) => {
+        const entry = entries[index];
+        const newErrors: Partial<Record<string, string>> = {};
+
+        validateEntry(entry, index, newErrors);
 
         if (Object.keys(newErrors).length > 0) {
             setErrors((p) => ({ ...p, ...newErrors }));
@@ -409,50 +403,14 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
         }
     };
 
-    // ── Validate ──
+    // ── Validate all entries ──────────────────────────────────────────────────
     const validate = () => {
         const newErrors: Partial<Record<string, string>> = {};
-
-        entries.forEach((entry, i) => {
-            if (!entry.school.trim()) newErrors[`${i}_school`] = "School is required";
-            if (!entry.degree.trim()) newErrors[`${i}_degree`] = "Degree is required";
-            if (entry.degree !== "10th" && !entry.fieldOfStudy.trim()) {
-                newErrors[`${i}_fieldOfStudy`] = "Field of study is required";
-            }
-            if (entry.gpa && !entry.resultType) {
-                newErrors[`${i}_resultType`] = "Please select CGPA or Percentage";
-            }
-            if (entry.resultType && !(entry.gpa ?? "").trim()) {
-                newErrors[`${i}_gpa`] = "Please enter a value";
-            }
-            if (entry.resultType === "cgpa" && entry.gpa) {
-                const val = parseFloat(entry.gpa ?? "");
-                if (isNaN(val) || val < 0 || val > 10.0) {
-                    newErrors[`${i}_gpa`] = "CGPA must be between 0 and 10.0";
-                }
-            }
-            if (entry.resultType === "percentage" && entry.gpa) {
-                const val = parseFloat(entry.gpa ?? "");
-                if (isNaN(val) || val < 0 || val > 100) {
-                    newErrors[`${i}_gpa`] = "Percentage must be between 0 and 100";
-                }
-            }
-            if (!entry.yearOfPassing) {
-                newErrors[`${i}_yearOfPassing`] = "Year of passing is required";
-            } else {
-                const year = parseInt(entry.yearOfPassing);
-                const currentYear = new Date().getFullYear();
-                if (isNaN(year) || year < 1950) {
-                    newErrors[`${i}_yearOfPassing`] = "Enter a valid year of passing";
-                } else if (year > currentYear) {
-                    newErrors[`${i}_yearOfPassing`] = `Year of passing cannot be greater than ${currentYear}`;
-                }
-            }
-            if (!entry.mode) newErrors[`${i}_mode`] = "Mode is required"
-        });
+        entries.forEach((entry, i) => validateEntry(entry, i, newErrors));
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
+
     const handleChange = (index: number, field: keyof EducationBlock, value: string) => {
         setEntries((prev) => prev.map((e, i) => i === index ? { ...e, [field]: value } : e));
         setErrors((prev) => { const e = { ...prev }; delete e[`${index}_${field}`]; return e; });
@@ -492,7 +450,6 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
                 Please list your highest level of education first, followed by the rest in descending order
             </p>
 
-            {/* Education Cards */}
             <div className="flex flex-col gap-6">
                 {entries.map((entry, index) => (
                     <EducationCard
@@ -501,6 +458,7 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
                         data={entry}
                         onChange={handleChange}
                         onDelete={handleDelete}
+                        usedDegrees={getUsedDegrees(index)}
                         errors={errors}
                         showDelete={entries.length > 1}
                         isEditMode={isEditMode}
@@ -511,17 +469,13 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
                 ))}
             </div>
 
-            {/* Add Another */}
             <div className="flex items-center justify-between mt-4">
                 <button
                     type="button"
                     onClick={handleAddAnother}
                     disabled={entries.length >= 5}
                     className={`flex items-center gap-2 text-sm font-medium transition-colors
-            ${entries.length >= 5
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-gray-700 hover:text-orange-500"
-                        }`}
+                        ${entries.length >= 5 ? "text-gray-300 cursor-not-allowed" : "text-gray-700 hover:text-orange-500"}`}
                 >
                     <span className="text-xl font-bold leading-none">+</span>
                     Add Another
@@ -529,7 +483,6 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
                 <span className="text-xs text-gray-400">{entries.length}/5</span>
             </div>
 
-            {/* Buttons */}
             <div className="flex gap-4 mt-8">
                 <button
                     className="flex-1 border border-gray-300 text-gray-600 text-sm font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors"

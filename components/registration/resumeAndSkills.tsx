@@ -72,12 +72,12 @@ export default function ResumeAndSkills({ onNext, onBack, defaultValues, isEditM
 
     // ── Validation ────────────────────────────────────────────────────────────
     const handleSubmit = () => {
-        let valid = true;
 
         if (!resume) {
             setResumeError("Resume is required. Please upload a PDF file.");
-            valid = false;
+             return;
         }
+        
 
         // if (skills.length === 0) {
         //     setSkillError("Please add at least one skill.");
@@ -97,7 +97,7 @@ export default function ResumeAndSkills({ onNext, onBack, defaultValues, isEditM
 
     return (
         <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">Resume & Skills</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Resume </h2>
             <p className="text-sm text-gray-500 mb-8">
                 Upload your resume and tell us what you're good at
             </p>

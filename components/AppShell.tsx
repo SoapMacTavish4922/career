@@ -51,7 +51,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 await api.post(ENDPOINTS.auth.heartbeat);
             } catch (error: any) {
                 console.warn("Heartbeat failed:", error?.response?.status);
-                // axios interceptor handles 401 → token refresh or session expiry
             }
         }, HEARTBEAT_INTERVAL);
 
