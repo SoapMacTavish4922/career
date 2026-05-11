@@ -5,6 +5,9 @@ import { useAuth } from "@/lib/context/AuthContext";
 import { authService } from "@/lib/services/auth.services";
 import { isValidEmail } from "@/lib/validators/auth";
 
+
+
+
 // ── Session Expired Overlay ───────────────────────────────────────────────────
 // Shows a transparent gradient overlay when JWT expires
 // User can re-login without losing their current page/form data
@@ -18,7 +21,9 @@ export default function SessionExpiredOverlay() {
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-   // if (process.env.NODE_ENV === "development") return null;  // ← disable in dev
+    const { logout } = useAuth();
+
+    // if (process.env.NODE_ENV === "development") return null;  // ← disable in dev
 
     if (!showSessionExpired) return null;
 
@@ -167,11 +172,11 @@ export default function SessionExpiredOverlay() {
                     {/* Full logout option */}
                     <button
                         onClick={() => {
-                            // Full logout — clears everything including saved progress
+                            logout();
                             window.location.href = "/login";
                         }}
                         className="w-full py-2.5 border border-gray-200 text-gray-500 text-sm font-semibold rounded-xl
-                            hover:bg-gray-50 transition-colors text-center"
+        hover:bg-gray-50 transition-colors text-center"
                     >
                         Log out completely
                     </button>

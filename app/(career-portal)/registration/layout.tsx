@@ -12,14 +12,16 @@ import { AllFormData } from "@/lib/types/registration";
 import { saveFormProgress, loadFormProgress, clearFormProgress } from "@/lib/utils/formProgress";
 import { useRouter } from "next/navigation";
 import { useSubmitRegistration } from "@/lib/hooks/useUser";
+import { useToast } from "@/components/ui/toast";
+import { ApiError } from "next/dist/server/api-utils";
 
 const steps = [
     { id: 1, label: "Basic details" },
     { id: 2, label: "Address Details" },
     { id: 3, label: "Educational details" },
     { id: 4, label: "Experience details" },
-    //{ id: 5, label: "Resume & Skills" },
-    { id: 5, label: "Declare and Submit" },
+    { id: 5, label: "Resume " }, //& Skills
+    { id: 6, label: "Declare and Submit" },
 ];
 
 interface Props {
@@ -45,6 +47,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedStep, setSavedStep] = useState(1);
     const { user } = useAuth();
+    const { success, apiError } = useToast();
 
     // ── Resume from saved step ────────────────────────────────────────────────
     const handleResume = () => {
@@ -114,7 +117,7 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
                     router.refresh();
                     router.push("/portal/search-jobs");
                 },
-                onError: () => alert("Failed to submit. Please try again."),
+                onError: (error) => apiError(error, "Failed to submit. Please try again."),
             });
         }
     };
@@ -125,8 +128,8 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
             case 2: return <AddressDetails onNext={goNext} onBack={goBack} defaultValues={formData} />;
             case 3: return <EducationalDetails onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
             case 4: return <ExperienceDetails onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
-           // case 5: return <ResumeAndSkills onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
-            case 5: return (
+            case 5: return <ResumeAndSkills onNext={goNext} onBack={goBack} defaultValues={formData} isEditMode={isEditMode} />;
+            case 6: return (
                 <DeclareAndSubmit
                     formData={formData}
                     onBack={goBack}

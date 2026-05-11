@@ -33,17 +33,17 @@ export const ENDPOINTS = {
         apply: (id: string) => `/jobs/${id}/apply`,
         search: "/jobs/search",
         applied: "/my-applications",
-        interviewSchedule: "/jobs/interview-scheduled",
+        interviewSchedule: "/jobs/interview-schedule",
         save: (id: string) => `/jobs/${id}/save`,
-        savedJobs: "/saved-jobs", // view_save_jobs
+        savedJobs: "/saved-jobs", 
     },
 
     registration: {
         basicDetails: "/candidate/basic-details",
         education: "/education",
         experience: "/employment",
-        resume: "/candidate/upload-resume",
-        skills: "/candidate/skills"
+        //resumeSkills: "/candidate/resume-skills",
+        //skills: "/candidate/skills"
         //update: "/update",
     },
 

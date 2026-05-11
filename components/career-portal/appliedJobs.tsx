@@ -1,11 +1,7 @@
 "use client";
 
-import Image from "next/image";
+import { useState } from "react";
 import { useAppliedJobs } from "@/lib/hooks/useJobs";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-// Update these fields to match whatever your Laravel API actually returns
-
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function AppliedJobsSkeleton() {
@@ -41,25 +37,105 @@ function EmptyState() {
     );
 }
 
+// ── Applied Job Card ──────────────────────────────────────────────────────────
+function AppliedJobCard({ item }: { item: any }) {
+    const [expanded, setExpanded] = useState(false);
+    const job = item.job;
+
+    return (
+        <div
+            className="border border-orange-400 rounded-2xl bg-white shadow-sm overflow-hidden transition-all duration-200"
+        >
+            {/* ── Collapsed header — always visible ── */}
+            <div
+                className="p-5 flex items-center justify-between gap-4 cursor-pointer"
+                onClick={() => setExpanded((v) => !v)}
+            >
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                    <h2 className="text-sm font-semibold text-gray-800 leading-snug truncate">{job.title}</h2>
+                    <p className="text-xs text-gray-400">{job.location}</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-full capitalize
+                        ${item.status === "applied" ? "bg-orange-50 text-orange-500" : ""}
+                        ${item.status === "shortlisted" ? "bg-blue-50 text-blue-500" : ""}
+                        ${item.status === "rejected" ? "bg-red-50 text-red-500" : ""}
+                        ${item.status === "hired" ? "bg-emerald-50 text-emerald-600" : ""}
+                    `}>
+                        {item.status}
+                    </span>
+                </div>
+            </div>
+
+            {/* ── Expanded details ── */}
+            {expanded && (
+                <div className="px-5 pb-5 border-t border-gray-100 flex flex-col gap-4 pt-4">
+
+                    {/* Experience + Qualification */}
+                    <div className="flex flex-wrap gap-x-6 gap-y-1">
+                        {job.experience_required && (
+                            <p className="text-xs text-gray-500">
+                                <span className="font-semibold text-gray-700">Experience: </span>
+                                {job.experience_required} yrs
+                            </p>
+                        )}
+                        {job.qualification && (
+                            <p className="text-xs text-gray-500">
+                                <span className="font-semibold text-gray-700">Qualification: </span>
+                                {job.qualification}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Description */}
+                    {job.description && (
+                        <div>
+                            <p className="text-xs font-semibold text-gray-700 mb-1">Description</p>
+                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-4">{job.description}</p>
+                        </div>
+                    )}
+
+                    {/* Skills */}
+                    {job.skills?.length > 0 && (
+                        <div>
+                            <p className="text-xs font-semibold text-gray-700 mb-2">Skills Required</p>
+                            <div className="flex flex-wrap gap-2">
+                                {job.skills.map((skill: string) => (
+                                    <span key={skill} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md font-medium">
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Responsibilities */}
+                    {job.responsibilities?.length > 0 && (
+                        <div>
+                            <p className="text-xs font-semibold text-gray-700 mb-1">Responsibilities</p>
+                            <ul className="flex flex-col gap-1">
+                                {job.responsibilities.map((r: string, i: number) => (
+                                    <li key={i} className="text-xs text-gray-500 flex items-start gap-2">
+                                        <span className="text-orange-400 mt-0.5 shrink-0">•</span>
+                                        {r}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
-
 export default function AppliedJobs() {
-
-    // ── Axios + React Query ───────────────────────────────────────────────────
-    // useAppliedJobs calls GET /jobs/applied via axios
-    // Bearer token attached automatically by axios request interceptor
-    // Result cached by React Query — won't refetch on every render
     const { data, isLoading, isError } = useAppliedJobs();
-
-    // ── Parse response ────────────────────────────────────────────────────────
-    // Laravel paginated response shape: { data: Job[], meta: { total, ... } }
-    // If your Laravel returns a plain array instead, change to: data ?? []
     const jobs = (data ?? []) as any[];
 
-    // ── Loading state ─────────────────────────────────────────────────────────
     if (isLoading) return <AppliedJobsSkeleton />;
 
-    // ── Error state ───────────────────────────────────────────────────────────
     if (isError) return (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
             <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
@@ -76,44 +152,16 @@ export default function AppliedJobs() {
 
     return (
         <div className="flex flex-col gap-4">
-
-            {/* ── Header ── */}
             <div className="mb-2">
                 <h1 className="text-xl font-bold text-gray-900">Applied Jobs</h1>
-                <p className="text-sm text-gray-400 mt-0.5">
-                    Track the status of your job applications
-                </p>
+                <p className="text-sm text-gray-400 mt-0.5">Track the status of your job applications</p>
             </div>
 
-            {/* ── Empty state ── */}
             {jobs.length === 0 && <EmptyState />}
 
-            {/* ── Job cards ── */}
-            {jobs.map((item) => {
-                return (
-                    <div
-                        key={item.id}
-                        className="border border-orange-400 rounded-2xl p-5 flex items-center justify-between bg-white gap-4 shadow-sm"
-                    >
-                        <div className="flex flex-col gap-1 flex-1">
-                            <h2 className="text-sm font-semibold text-gray-800 leading-snug">
-                                {item.job.title}          {/* ← nested inside job object */}
-                            </h2>
-                            <p className="text-xs text-gray-400">{item.job.location}</p>
-                        </div>
-                        <div className="shrink-0">
-                            <span className={`text-xs font-semibold px-3 py-1.5 rounded-full capitalize
-                                ${item.status === "applied" ? "bg-orange-50 text-orange-500" : ""}
-                                ${item.status === "shortlisted" ? "bg-blue-50 text-blue-500" : ""}
-                                ${item.status === "rejected" ? "bg-red-50 text-red-500" : ""}
-                                ${item.status === "hired" ? "bg-emerald-50 text-emerald-600" : ""}
-                                `}>
-                                {item.status}
-                            </span>
-                        </div>
-                    </div>
-                );
-            })}
+            {jobs.map((item) => (
+                <AppliedJobCard key={item.id} item={item} />
+            ))}
         </div>
     );
 }

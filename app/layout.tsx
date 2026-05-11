@@ -1,8 +1,8 @@
-
 import type { Metadata } from "next";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import QueryProvider from "@/lib/providers/QueryProvider";
 import AppShell from "@/components/AppShell";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,9 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <QueryProvider>
           <AuthProvider>
-            <AppShell>
-              {children}
-            </AppShell>
+            <ToastProvider>
+              <AppShell>
+                {children}
+              </AppShell>
+            </ToastProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

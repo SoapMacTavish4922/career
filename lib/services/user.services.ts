@@ -11,7 +11,7 @@ export const userService = {
     getProfile: async () => {
         const res = await api.get(ENDPOINTS.user.profile);
         const raw = res.data.data;
-        
+
 
 
         return {
@@ -97,7 +97,7 @@ export const userService = {
     // 3 sequential API calls — if any fails, the rest are skipped
     submitRegistration: async (data: any) => {
 
-        // ── Call 1: Basic Details + Address ──────────────────────────────────
+        // ── Call 1: Basic Details + Address + Resume + Skills ────────────────
         try {
             const formData = new FormData();
 
@@ -111,8 +111,7 @@ export const userService = {
             formData.append("alternate_mobile", data.altPhone ?? "");
             formData.append("gender", data.gender);
             formData.append("dob", data.dob);
-            // formData.append("current_address", JSON.stringify(data.currentAddress));
-            // formData.append("permanent_address", JSON.stringify(data.permanentAddress));
+
             formData.append("current_address[address]", data.currentAddress?.line1 ?? "");
             formData.append("current_address[city]", data.currentAddress?.city ?? "");
             formData.append("current_address[state]", data.currentAddress?.state ?? "");
@@ -125,15 +124,25 @@ export const userService = {
             formData.append("permanent_address[country]", data.permanentAddress?.country ?? "");
             formData.append("permanent_address[pincode]", data.permanentAddress?.pinCode ?? "");
 
+            // ── Resume ────────────────────────────────────────────────────────
+            if (data.resume instanceof File) {
+                formData.append("resume", data.resume);
+            }
+
+            // // ── Skills ────────────────────────────────────────────────────────
+            // if (data.skills?.length > 0) {
+            //     data.skills.forEach((skill: string, index: number) => {
+            //         formData.append(`skills[${index}]`, skill);
+            //     });
+            // }
+
             await api.post(ENDPOINTS.registration.basicDetails, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
+                headers: { "Content-Type": "multipart/form-data" },
             });
-            console.log(" Basic details saved");
+            console.log("Basic details + Resume saved");
 
         } catch (error: any) {
-            console.log(" Basic details failed:", error?.response?.data);
+            console.log("Basic details failed:", error?.response?.data);
             throw new Error("Failed to save basic details. Please try again.");
         }
 
@@ -193,33 +202,29 @@ export const userService = {
             throw new Error("Failed to save experience details. Please try again.");
         }
 
-        // ── Call 4: Resume ────────────────────────────────────────────────────────
-        try {
-            if (data.resume instanceof File) {
-                const resumeFormData = new FormData();
-                resumeFormData.append("resume", data.resume);
-                await api.post(ENDPOINTS.registration.resume, resumeFormData, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                });
-                console.log("Resume saved");
-            }
-        } catch (error: any) {
-            console.log("Resume failed:", error?.response?.data);
-            throw new Error("Failed to upload resume. Please try again.");
-        }
+        // // ── Call 4: Resume & Skills ───────────────────────────────────────────────
+        // try {
+        //     const resumeSkillsForm = new FormData();
 
-        // ── Call 5: Skills ────────────────────────────────────────────────────────
-        try {
-            if (data.skills?.length > 0) {
-                await api.post(ENDPOINTS.registration.skills, {
-                    skills: data.skills,
-                });
-                console.log("Skills saved");
-            }
-        } catch (error: any) {
-            console.log("Skills failed:", error?.response?.data);
-            throw new Error("Failed to save skills. Please try again.");
-        }
+        //     if (data.resume instanceof File) {
+        //         resumeSkillsForm.append("resume", data.resume);
+        //     }
+
+        //     if (data.skills?.length > 0) {
+        //         data.skills.forEach((skill: string, index: number) => {
+        //             resumeSkillsForm.append(`skills[${index}]`, skill);
+        //         });
+        //     }
+
+        //     await api.post(ENDPOINTS.registration.resumeSkills, resumeSkillsForm, {
+        //         headers: { "Content-Type": "multipart/form-data" },
+        //     });
+        //     console.log("Resume & Skills saved");
+
+        // } catch (error: any) {
+        //     console.log("Resume & Skills failed:", error?.response?.data);
+        //     throw new Error("Failed to upload resume and skills. Please try again.");
+        // }
 
 
     },

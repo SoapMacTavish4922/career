@@ -4,16 +4,19 @@ import { useState } from "react";
 import { useInterviews } from "@/lib/hooks/useJobs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+// ── Update Interface ──
 interface Interview {
-    id: number;
-    job_title: string;
+    application_id: string;
+    job_title: string | null;
+    job_location: string | null;
     interview_date: string;
-    interview_time: string;
+    interview_mode: "online" | "offline";
+    interview_link: string | null;
+    interview_address: string | null;
     hr_name: string;
-    interview_type: "online" | "offline";
-    meeting_link?: string;
-    location?: string;
+    interview_scheduled_at: string;
 }
+
 const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -58,24 +61,29 @@ function InterviewSkeleton() {
 
 // ── Interview Card ────────────────────────────────────────────────────────────
 function InterviewCard({ interview }: { interview: Interview }) {
-    const isOnline = interview.interview_type === "online";
+    const isOnline = interview.interview_mode === "online";
 
     return (
         <div className="border border-orange-400 rounded-2xl px-5 py-5 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4">
 
-            {/* ── Header ── */}
+            {/* Header */}
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <p className="text-xs text-gray-400 font-medium mb-0.5">Interview Scheduled for</p>
-                    <h2 className="text-base font-bold text-gray-900">{interview.job_title}</h2>
+                    <h2 className="text-base font-bold text-gray-900">
+                        {interview.job_title ?? "Job Interview"}
+                    </h2>
+                    {interview.job_location && (
+                        <p className="text-xs text-gray-400 mt-0.5">{interview.job_location}</p>
+                    )}
                 </div>
-                <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full capitalize
+                <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full
                     ${isOnline ? "bg-blue-50 text-blue-500" : "bg-orange-50 text-orange-500"}`}>
                     {isOnline ? "Online" : "Onsite"}
                 </span>
             </div>
 
-            {/* ── Details grid ── */}
+            {/* Details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
                 {/* Date */}
@@ -95,7 +103,7 @@ function InterviewCard({ interview }: { interview: Interview }) {
                         <circle cx="12" cy="12" r="10" />
                         <polyline points="12 6 12 12 16 14" />
                     </svg>
-                    <span>{formatTime(interview.interview_time)}</span>
+                    <span>{formatTime(interview.interview_date)}</span>
                 </div>
 
                 {/* HR Name */}
@@ -108,30 +116,26 @@ function InterviewCard({ interview }: { interview: Interview }) {
                 </div>
 
                 {/* Online — meeting link */}
-                {isOnline && interview.meeting_link && (
+                {isOnline && interview.interview_link && (
                     <div className="flex items-center gap-2 text-sm">
                         <svg className="w-4 h-4 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
                         </svg>
-                        <a
-                            href={interview.meeting_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline font-medium"
-                        >
+                        <a href={interview.interview_link} target="_blank" rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline font-medium">
                             Join Meeting
                         </a>
                     </div>
                 )}
 
                 {/* Offline — full address */}
-                {!isOnline && interview.location && (
+                {!isOnline && interview.interview_address && (
                     <div className="flex items-start gap-2 text-sm text-gray-600 sm:col-span-2">
                         <svg className="w-4 h-4 shrink-0 text-orange-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span className="leading-relaxed">{interview.location}</span>
+                        <span className="leading-relaxed">{interview.interview_address}</span>
                     </div>
                 )}
             </div>
@@ -141,11 +145,8 @@ function InterviewCard({ interview }: { interview: Interview }) {
 
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 export default function InterviewSchedule() {
-    const [currentPage, setCurrentPage] = useState(1);
-
-    const { data, isLoading, isError } = useInterviews(currentPage);
-    const interviews = (data?.data ?? []) as Interview[];
-    const totalPages = data?.last_page ?? 1;
+    const { data, isLoading, isError } = useInterviews();
+    const interviews = (data ?? []) as Interview[];
 
     if (isLoading) return <InterviewSkeleton />;
 
@@ -179,55 +180,17 @@ export default function InterviewSchedule() {
 
     return (
         <div className="flex flex-col gap-4">
-
             <div className="mb-2">
                 <h1 className="text-xl font-bold text-gray-900">Interview Schedule</h1>
                 <p className="text-sm text-gray-400 mt-0.5">Your upcoming interviews</p>
             </div>
 
             {interviews.map((interview) => (
-                <InterviewCard key={interview.id} interview={interview} />
+                <InterviewCard key={interview.application_id} interview={interview} />
             ))}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-4">
-                    <button
-                        onClick={() => setCurrentPage((p) => p - 1)}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600
-                            hover:border-orange-400 hover:text-orange-500 disabled:opacity-30
-                            disabled:cursor-not-allowed transition-colors"
-                    >
-                        ← Prev
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors
-                                ${currentPage === page
-                                    ? "bg-orange-500 text-white"
-                                    : "border border-gray-200 text-gray-600 hover:border-orange-400 hover:text-orange-500"
-                                }`}
-                        >
-                            {page}
-                        </button>
-                    ))}
-                    <button
-                        onClick={() => setCurrentPage((p) => p + 1)}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600
-                            hover:border-orange-400 hover:text-orange-500 disabled:opacity-30
-                            disabled:cursor-not-allowed transition-colors"
-                    >
-                        Next →
-                    </button>
-                </div>
-            )}
-
             <p className="text-center text-xs text-gray-400">
-                Showing {interviews.length} of {data?.total ?? interviews.length} interviews
+                {interviews.length} interview{interviews.length !== 1 ? "s" : ""} scheduled
             </p>
         </div>
     );

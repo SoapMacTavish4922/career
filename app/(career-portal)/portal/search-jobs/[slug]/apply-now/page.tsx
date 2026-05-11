@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useJobFromCache, useApplyJob } from "@/lib/hooks/useJobs";
 import { useProfile } from "@/lib/hooks/useUser";
 import { useAuth } from "@/lib/context/AuthContext";
+import { useToast } from "@/components/ui/toast";
 
 // ── Ticker ────────────────────────────────────────────────────────────────────
 
@@ -213,6 +214,8 @@ export default function ApplyPage() {
     const slug = String(params.slug);
     const searchParams = useSearchParams();
     const id = searchParams.get("id") ?? "";
+    const { success, apiError } = useToast();
+
 
 
     // ── Fetch job details ─────────────────────────────────────────────────────
@@ -240,6 +243,7 @@ export default function ApplyPage() {
     const [submitted, setSubmitted] = useState(false);
 
 
+
     // Show modal automatically on page load
     useEffect(() => {
         const timer = setTimeout(() => setShowModal(true), 600);
@@ -256,9 +260,9 @@ export default function ApplyPage() {
             onError: (error: any) => {
                 const status = error?.response?.status;
                 if (status === 409) {
-                    alert("You have already applied for this job.");
+                    apiError(error, "You have already applied for this job.");
                 } else {
-                    alert("Failed to submit application. Please try again.");
+                    apiError(error, "Failed to submit application. Please try again.");
                 }
             },
         });

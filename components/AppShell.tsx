@@ -7,10 +7,11 @@ import SessionExpiredOverlay from "@/components/career-portal/SessionExpiryOverl
 import { usePathname } from "next/navigation";
 import api from "@/lib/api/client";
 import { ENDPOINTS } from "@/lib/api/endpoints";
+import Cookies from "js-cookie";
 
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password"];
-const INACTIVE_LIMIT = 15 * 60 * 1000;      // 15 min inactivity → show session expired
-const HEARTBEAT_INTERVAL = 10 * 60 * 1000;  // ping every 10 min if active
+const INACTIVE_LIMIT = 15 * 60 * 1000;      
+const HEARTBEAT_INTERVAL = 10 * 60 * 1000;  
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -40,7 +41,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             // User inactive for 15 mins → show session expired overlay
             if (timeSinceActivity > INACTIVE_LIMIT) {
-                triggerSessionExpiry();
+                Cookies.remove("auth_token");  
+                triggerSessionExpiry();        
                 return;
             }
 

@@ -265,7 +265,7 @@ export default function SearchJobs() {
     const [keyword, setKeyword] = useState("");
     const [debouncedKeyword, setDebouncedKeyword] = useState("");
     const { data: savedData } = useSavedJobsList();
-    const savedJobIds = (savedData?.data ?? []).map((j: any) => j.id) as string[];
+    const savedJobIds = (savedData?.data ?? []).map((j: any) => j.job.id) as string[];
 
     useEffect(() => {
         const timer = setTimeout(() => {

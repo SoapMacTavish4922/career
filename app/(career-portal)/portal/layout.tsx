@@ -6,58 +6,66 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import { authService } from "@/lib/services/auth.services";
 import Cookies from "js-cookie";
-import { useSavedJobsList } from "@/lib/hooks/useJobs";
+
+
+let cachedBlobUrl: string | null = null;
+let cachedPhotoUrl: string | null = null;
 
 export default function MainLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const { user, logout } = useAuth();
-
-    const { data: savedData } = useSavedJobsList();
-    const savedCount = (savedData?.data ?? []).length;
-    const [savedOpen, setSavedOpen] = useState(false);
-    const savedRef = useRef<HTMLDivElement>(null);
-
-    const handleClickOutside = (e: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
-            setDropdownOpen(false);
-        if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node))
-            setMobileMenuOpen(false);
-        if (savedRef.current && !savedRef.current.contains(e.target as Node))
-            setSavedOpen(false);  // ← add this
-    };
-
+    const { user, logout, setUser } = useAuth();
     const collapsed = pathname.includes("/edit-details");
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
-    const blobUrlRef = useRef<string | null>(null);
-    const lastUrlRef = useRef<string | null>(null);
     const [photoSrc, setPhotoSrc] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user?.profilePhoto) return;
-        if (user.profilePhoto === lastUrlRef.current && blobUrlRef.current) {
-            setPhotoSrc(blobUrlRef.current);
+        if (user.profilePhoto === cachedPhotoUrl && cachedBlobUrl) {
+            setPhotoSrc(cachedBlobUrl);
             return;
         }
 
-        const token = Cookies.get("auth_token");
-        if (!token) return;
+        const fetchPhoto = async (url: string) => {
+            const token = Cookies.get("auth_token");
+            if (!token) return;
 
-        fetch(user.profilePhoto, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((res) => res.blob())
-            .then((blob) => {
-                if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-                const url = URL.createObjectURL(blob);
-                blobUrlRef.current = url;
-                lastUrlRef.current = user.profilePhoto!;
-                setPhotoSrc(url);
-            })
-            .catch(() => setPhotoSrc("/user.png"));
+            try {
+                const res = await fetch(url, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (res.status === 403) {
+                    const profileRes = await fetch(
+                        `${process.env.NEXT_PUBLIC_API_URL}/candidate/profile`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    const profileData = await profileRes.json();
+                    const freshUrl = profileData?.data?.photo_url;
+                    if (freshUrl && freshUrl !== url) {
+                        setUser({ ...user!, profilePhoto: freshUrl });
+                    }
+                    return;
+                }
+
+                if (!res.ok) return;
+
+                const blob = await res.blob();
+                if (cachedBlobUrl) URL.revokeObjectURL(cachedBlobUrl);
+                const objectUrl = URL.createObjectURL(blob);
+                cachedBlobUrl = objectUrl;
+                cachedPhotoUrl = url;
+                setPhotoSrc(objectUrl);
+
+            } catch {
+                setPhotoSrc(null);
+            }
+        };
+
+        fetchPhoto(user.profilePhoto);
     }, [user?.profilePhoto]);
 
     const initials = user?.name
@@ -86,6 +94,9 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     const handleLogout = async () => {
         setDropdownOpen(false);
         setMobileMenuOpen(false);
+        if (cachedBlobUrl) URL.revokeObjectURL(cachedBlobUrl);
+        cachedBlobUrl = null;
+        cachedPhotoUrl = null
         try {
             await authService.logout(); // tells Laravel to invalidate token server side
         } catch {

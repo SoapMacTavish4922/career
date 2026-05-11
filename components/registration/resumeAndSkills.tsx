@@ -12,9 +12,9 @@ interface Props {
 export default function ResumeAndSkills({ onNext, onBack, defaultValues, isEditMode }: Props) {
     const [resume, setResume] = useState<File | null>(defaultValues?.resume ?? null);
     const [resumeError, setResumeError] = useState("");
-    const [skills, setSkills] = useState<string[]>(defaultValues?.skills ?? []);
-    const [skillInput, setSkillInput] = useState("");
-    const [skillError, setSkillError] = useState("");
+    //const [skills, setSkills] = useState<string[]>(defaultValues?.skills ?? []);
+    //const [skillInput, setSkillInput] = useState("");
+    //const [skillError, setSkillError] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,37 +38,37 @@ export default function ResumeAndSkills({ onNext, onBack, defaultValues, isEditM
         if (file) handleFileChange(file);
     };
 
-    // ── Skills handling ───────────────────────────────────────────────────────
-    const addSkill = () => {
-        const trimmed = skillInput.trim();
-        if (!trimmed) return;
-        if (skills.length >= 20) {
-            setSkillError("Maximum 20 skills allowed.");
-            return;
-        }
-        if (skills.map((s) => s.toLowerCase()).includes(trimmed.toLowerCase())) {
-            setSkillError("Skill already added.");
-            return;
-        }
-        setSkills((prev) => [...prev, trimmed]);
-        setSkillInput("");
-        setSkillError("");
-    };
+    // // ── Skills handling ───────────────────────────────────────────────────────
+    // const addSkill = () => {
+    //     const trimmed = skillInput.trim();
+    //     if (!trimmed) return;
+    //     if (skills.length >= 20) {
+    //         setSkillError("Maximum 20 skills allowed.");
+    //         return;
+    //     }
+    //     if (skills.map((s) => s.toLowerCase()).includes(trimmed.toLowerCase())) {
+    //         setSkillError("Skill already added.");
+    //         return;
+    //     }
+    //     setSkills((prev) => [...prev, trimmed]);
+    //     setSkillInput("");
+    //     setSkillError("");
+    // };
 
-    const removeSkill = (index: number) => {
-        setSkills((prev) => prev.filter((_, i) => i !== index));
-        setSkillError("");
-    };
+    // const removeSkill = (index: number) => {
+    //     setSkills((prev) => prev.filter((_, i) => i !== index));
+    //     setSkillError("");
+    // };
 
-    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter" || e.key === ",") {
-            e.preventDefault();
-            addSkill();
-        }
-        if (e.key === "Backspace" && skillInput === "" && skills.length > 0) {
-            removeSkill(skills.length - 1);
-        }
-    };
+    // const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    //     if (e.key === "Enter" || e.key === ",") {
+    //         e.preventDefault();
+    //         addSkill();
+    //     }
+    //     if (e.key === "Backspace" && skillInput === "" && skills.length > 0) {
+    //         removeSkill(skills.length - 1);
+    //     }
+    // };
 
     // ── Validation ────────────────────────────────────────────────────────────
     const handleSubmit = () => {
@@ -79,14 +79,14 @@ export default function ResumeAndSkills({ onNext, onBack, defaultValues, isEditM
             valid = false;
         }
 
-        if (skills.length === 0) {
-            setSkillError("Please add at least one skill.");
-            valid = false;
-        }
+        // if (skills.length === 0) {
+        //     setSkillError("Please add at least one skill.");
+        //     valid = false;
+        // }
 
-        if (!valid) return;
+        // if (!valid) return;
 
-        onNext({ resume, skills });
+        onNext({ resume }); //,skills
     };
 
     const formatFileSize = (bytes: number) => {
@@ -186,76 +186,7 @@ export default function ResumeAndSkills({ onNext, onBack, defaultValues, isEditM
                             e.target.value = "";
                         }}
                     />
-                </div>
-
-                {/* ── Skills ── */}
-                <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-gray-700">
-                        Skills <span className="text-red-500">*</span>
-                        <span className="text-xs text-gray-400 font-normal ml-2">
-                            Type a skill and press Enter or comma to add
-                        </span>
-                    </label>
-
-                    {/* Skills input box */}
-                    <div
-                        onClick={() => inputRef.current?.focus()}
-                        className={`min-h-auto border rounded-xl px-3 py-2.5 flex flex-wrap gap-2 cursor-text transition-all
-                            ${skillError
-                                ? "border-red-400 focus-within:ring-2 focus-within:ring-red-100"
-                                : "border-gray-300 focus-within:ring-2 focus-within:ring-teal-400 focus-within:border-teal-400"
-                            }`}
-                    >
-                        {/* Skill pills */}
-                        {skills.map((skill, index) => (
-                            <span
-                                key={index}
-                                className="flex items-center gap-1 bg-[#006256] text-white text-xs font-small px-2 py-1 rounded-xl"
-                            >
-                                {skill}
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); removeSkill(index); }}
-                                    className="hover:text-red-200 transition-colors leading-none"
-                                >
-                                    <svg width="8" height="8" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                        <path d="M18 6 6 18M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </span>
-                        ))}
-
-                        {/* Input */}
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={skillInput}
-                            onChange={(e) => {
-                                setSkillInput(e.target.value);
-                                setSkillError("");
-                            }}
-                            onKeyDown={handleKeyDown}
-                            placeholder={skills.length === 0 ? "eg. PHP, React, HTML..." : ""}
-                            className="flex-1 min-w-[120px] text-sm outline-none bg-transparent placeholder-gray-300"
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        {skillError ? (
-                            <p className="text-xs text-red-500 flex items-center gap-1">
-                                <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                                {skillError}
-                            </p>
-                        ) : (
-                            <p className="text-xs text-gray-400">
-                                Press <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-500 font-mono text-[10px]">Enter</kbd> or <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-500 font-mono text-[10px]">,</kbd> to add · Backspace to remove last
-                            </p>
-                        )}
-                        <span className="text-xs text-gray-400 shrink-0">{skills.length}/20</span>
-                    </div>
-                </div>
+                </div>         
             </div>
 
             {/* ── Buttons ── */}

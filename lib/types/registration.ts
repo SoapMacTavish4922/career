@@ -57,6 +57,6 @@ export interface AllFormData {
     education?: EducationBlock[];
     experience?: ExperienceBlock[];
     resume?: File | null;
-    skill?: string[];
-    certifications?: CertificationBlock[];
+    //skill?: string[];
+    //certifications?: CertificationBlock[];
 }

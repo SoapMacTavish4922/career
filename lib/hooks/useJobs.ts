@@ -38,10 +38,10 @@ export function useAppliedJobs() {
 }
 
 // Interview schedule page
-export function useInterviews(page: number = 1) {
+export function useInterviews() {
     return useQuery({
-        queryKey: [...jobKeys.interviews, page],
-        queryFn: () => jobsService.getInterviews(page),
+        queryKey: jobKeys.interviews,
+        queryFn: jobsService.getInterviews,
     });
 }
 

@@ -48,11 +48,9 @@ export const jobsService = {
     // ── Get interview schedule ────────────────────────────────────────────────
     // Called on interview schedule page
 
-    getInterviews: async (page?: number) => {
-        const res = await api.get(ENDPOINTS.jobs.interviewSchedule, {
-            params: { page }
-        });
-        return res.data.data; 
+    getInterviews: async () => {
+        const res = await api.get(ENDPOINTS.jobs.interviewSchedule);
+        return res.data.data;
     },
 
 
@@ -67,6 +65,7 @@ export const jobsService = {
         const res = await api.post(ENDPOINTS.jobs.save(jobId));
         return res.data;
     },
+
     getSavedJobs: async () => {
         const res = await api.get(ENDPOINTS.jobs.savedJobs);
         return res.data;
