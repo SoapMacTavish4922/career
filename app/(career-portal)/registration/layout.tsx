@@ -13,7 +13,8 @@ import { saveFormProgress, loadFormProgress, clearFormProgress } from "@/lib/uti
 import { useRouter } from "next/navigation";
 import { useSubmitRegistration } from "@/lib/hooks/useUser";
 import { useToast } from "@/components/ui/toast";
-import { ApiError } from "next/dist/server/api-utils";
+import { authService } from "@/lib/services/auth.services";
+import { useRef } from "react"; // ← add useRef to existing useState, useEffect import
 
 const steps = [
     { id: 1, label: "Basic details" },
@@ -46,7 +47,28 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
     const [formData, setFormData] = useState<AllFormData>(defaultValues ?? {});
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [savedStep, setSavedStep] = useState(1);
-    const { user } = useAuth();
+    const { user, logout } = useAuth(); // ← add logout here
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const initials = user?.name
+        ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+        : "?";
+
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
+                setDropdownOpen(false);
+        };
+        document.addEventListener("mousedown", handleClick);
+        return () => document.removeEventListener("mousedown", handleClick);
+    }, []);
+
+    const handleLogout = async () => {
+        try { await authService.logout(); } catch { }
+        logout();
+        router.push("/login");
+    };
     const { success, apiError } = useToast();
 
     // ── Resume from saved step ────────────────────────────────────────────────
@@ -101,6 +123,10 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
             const currentIndex = editableSteps.indexOf(currentStep);
             if (currentIndex > 0) {
                 setCurrentStep(editableSteps[currentIndex - 1]);
+            } else if (currentIndex === 0) {
+                router.push("/portal/profile");
+            } else {
+                setCurrentStep(editableSteps[editableSteps.length - 1]);
             }
         } else {
             setCurrentStep((s) => Math.max(s - 1, 1));
@@ -144,8 +170,45 @@ export default function RegistrationLayout({ defaultValues, isEditMode = false, 
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col lg:flex-row overflow-hidden">
+        <div className="relative min-h-screen bg-gray-100 flex flex-col lg:flex-row overflow-hidden">
+            {/* ── Profile Topbar ── */}
+            <div className="absolute top-4 right-4 z-20" ref={dropdownRef}>
+                <button
+                    onClick={() => setDropdownOpen((p) => !p)}
+                    className="flex items-center gap-2 cursor-pointer group"
+                >
+                    <div className="w-9 h-9 rounded-full shrink-0 ring-2 ring-transparent group-hover:ring-[#006256]/30 transition-all overflow-hidden">
+                        <div className="w-full h-full rounded-full bg-[#006256] flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">{initials}</span>
+                        </div>
+                    </div>
+                    <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
 
+                {dropdownOpen && (
+                    <div className="absolute right-0 top-12 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden z-50">
+                        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                            <p className="text-xs font-bold text-gray-800">{user?.name ?? "—"}</p>
+                            <p className="text-xs text-gray-400 mt-0.5 truncate">{user?.email ?? "—"}</p>
+                        </div>
+                        <div className="py-1.5">
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors text-left"
+                            >
+                                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+            
             {/* ── Resume Modal ── */}
             {showResumePrompt && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">

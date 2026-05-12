@@ -75,9 +75,9 @@ export default function ResumeAndSkills({ onNext, onBack, defaultValues, isEditM
 
         if (!resume) {
             setResumeError("Resume is required. Please upload a PDF file.");
-             return;
+            return;
         }
-        
+
 
         // if (skills.length === 0) {
         //     setSkillError("Please add at least one skill.");
@@ -180,13 +180,14 @@ export default function ResumeAndSkills({ onNext, onBack, defaultValues, isEditM
                         type="file"
                         accept=".pdf"
                         className="hidden"
+                        required
                         onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) handleFileChange(file);
                             e.target.value = "";
                         }}
                     />
-                </div>         
+                </div>
             </div>
 
             {/* ── Buttons ── */}

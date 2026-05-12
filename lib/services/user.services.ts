@@ -271,4 +271,56 @@ export const userService = {
         return res.data;
     },
 
+    // ── Add new experience entry (edit mode, no ID) ───────────────────────────
+    addExperience: async (exp: any) => {
+        const noticeToInt = (notice: string): number => {
+            if (notice === "Immediate Joiner") return 0;
+            if (notice === "90+") return 91;
+            return parseInt(notice) || 0;
+        };
+        const res = await api.post(ENDPOINTS.registration.experience, {
+            employment: [{
+                experience_type: exp.experienceType,
+                job_title: exp.title,
+                designation: exp.designation ?? "",
+                company_name: exp.company,
+                location: exp.location,
+                start_date: exp.from,
+                end_date: exp.isCurrentJob ? null : exp.to ?? "",
+                notice_period: exp.isCurrentJob ? noticeToInt(exp.notice) : 0,
+                current_ctc: exp.currentctc ?? "",
+                is_current: exp.isCurrentJob ?? false,
+            }],
+        });
+        return res.data?.data?.[0] ?? res.data;
+    },
+
+    // ── Delete experience entry ───────────────────────────────────────────────
+    deleteExperience: async (id: string) => {
+        const res = await api.delete(`${ENDPOINTS.registration.experience}/${id}`);
+        return res.data;
+    },
+
+    // ── Add new education entry (edit mode, no ID) ────────────────────────────
+    addEducation: async (edu: any) => {
+        const res = await api.post(ENDPOINTS.registration.education, {
+            education: [{
+                institution: edu.school,
+                level: edu.degree,
+                course: edu.fieldOfStudy,
+                score_type: edu.resultType,
+                score: edu.gpa,
+                year_of_passing: parseInt(edu.yearOfPassing) || null,
+                mode: edu.mode,
+            }],
+        });
+        return res.data?.data?.[0] ?? res.data;
+    },
+
+    // ── Delete education entry ────────────────────────────────────────────────
+    deleteEducation: async (id: string) => {
+        const res = await api.delete(`${ENDPOINTS.registration.education}/${id}`);
+        return res.data;
+    },
+
 };

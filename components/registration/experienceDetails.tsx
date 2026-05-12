@@ -4,6 +4,9 @@ import { useState } from "react";
 import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
 import { ExperienceBlock } from "@/lib/types/registration";
 import { userService } from "@/lib/services/user.services";
+import { useToast } from "../ui/toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { userKeys } from "@/lib/hooks/useUser";
 
 interface Props {
     onNext: (data?: any) => void;
@@ -66,7 +69,7 @@ const ExperienceCard = ({
     index: number;
     data: ExperienceBlock;
     onChange: (index: number, field: keyof ExperienceBlock, value: string) => void;
-    onDelete: (index: number) => void;
+    onDelete: (index: number) => Promise<void>;
     onToggleCurrent: (index: number) => void;
     errors: Partial<Record<string, string>>;
     showDelete: boolean;
@@ -82,9 +85,16 @@ const ExperienceCard = ({
 }) => {
     const isExperienced = data.experienceType === "experienced";
     const isCurrentJob = !!(data as any).isCurrentJob;
+    const isDuplicate = !!errors[`${index}_title`]?.includes("Duplicate");
 
     return (
         <div className="flex flex-col gap-4 pb-6 border-b border-gray-200 last:border-none">
+
+            {isDuplicate && (
+                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-sm text-red-600">
+                    This experience appears to be a duplicate.
+                </div>
+            )}
 
             {/* ── Experience Type dropdown (first card only) + Delete ── */}
             <div className="flex justify-between items-center">
@@ -351,6 +361,8 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
     );
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [savedIndex, setSavedIndex] = useState<number | null>(null);
+    const { error: showError, success: showSuccess } = useToast();
+    const queryClient = useQueryClient();
 
     const handleSaveCard = async (index: number) => {
         const entry = entries[index];
@@ -395,7 +407,7 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
         }
 
         if (entry.experienceType === "fresher") {
-            alert("Fresher has no record to update.");
+            showError("Fresher has no record to update.");
             return;
         }
 
@@ -404,15 +416,23 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
             return;
         }
 
-        if (!entry.id) { alert("Cannot save — missing record ID."); return; }
-
         setSavingIndex(index);
         try {
-            await userService.saveExperience(entry.id, { ...entry, notice });
+            if (!entry.id) {
+                // ── No ID → create new entry ──
+                const newEntry = await userService.addExperience({ ...entry, notice });
+                setEntries((prev) => prev.map((e, i) =>
+                    i === index ? { ...e, id: newEntry.id } : e
+                ));
+            } else {
+                // ── Has ID → update existing entry ──
+                await userService.saveExperience(entry.id, { ...entry, notice });
+            }
+            queryClient.invalidateQueries({ queryKey: userKeys.profile });
             setSavedIndex(index);
             setTimeout(() => setSavedIndex(null), 2000);
         } catch {
-            alert("Failed to save. Please try again.");
+            showError("Failed to save. Please try again.");
         } finally {
             setSavingIndex(null);
         }
@@ -464,10 +484,28 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
                 }
             }
         });
+        // ── Duplicate detection ──────────────────────────────────────────────────
+        const seen = new Map<string, number>();
+        entries.forEach((entry, i) => {
+            if (entry.experienceType !== "experienced") return;
 
-        if (hasCurrentJob && !notice) {
-            newErrors["notice"] = "Please select a notice period";
-        }
+            const key = [
+                entry.title.trim().toLowerCase(),
+                entry.company.trim().toLowerCase(),
+                entry.from,
+            ].join("|");
+
+            if (seen.has(key)) {
+                const firstIndex = seen.get(key)!;
+                newErrors[`${i}_title`] = "Duplicate entry — same title, company & start date already added";
+                newErrors[`${firstIndex}_title`] = "Duplicate entry — same title, company & start date already added";
+            } else {
+                seen.set(key, i);
+            }
+        });
+        // if (hasCurrentJob && !notice) {
+        //     newErrors["notice"] = "Please select a notice period";
+        // }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -483,7 +521,21 @@ export default function ExperienceDetails({ onNext, onBack, defaultValues, isEdi
         setErrors((prev) => { const e = { ...prev }; delete e[`${index}_${field}`]; return e; });
     };
 
-    const handleDelete = (index: number) => {
+    const handleDelete = async (index: number) => {
+        const entry = entries[index];
+
+        if (isEditMode && entry.id) {
+            try {
+                await userService.deleteExperience(entry.id);
+                queryClient.invalidateQueries({ queryKey: userKeys.profile });
+                showSuccess("Experience deleted successfully.");
+            } catch {
+                showError("Failed to delete experience. Please try again.");
+                return;
+            }
+        }
+
+        // ── Remove from UI ──
         setEntries((prev) => prev.filter((_, i) => i !== index));
         setErrors((prev) => {
             const e = { ...prev };

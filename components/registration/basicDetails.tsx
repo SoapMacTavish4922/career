@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useState, useRef, useEffect } from "react";
 import { allowOnlyLetters, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
 import Cookies from "js-cookie";
+import { useToast } from "../ui/toast";
 
 type FormData = {
     name: string;
@@ -39,11 +40,13 @@ function ProfilePhotoUpload({
     onPhotoChange,
     error,
     existingPhotoUrl,
+    onError
 }: {
     photo: File | null;
     onPhotoChange: (f: File | null) => void;
     error?: string;
     existingPhotoUrl?: string;
+    onError: (msg: string) => void;
 }) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -77,12 +80,13 @@ function ProfilePhotoUpload({
 
     // ── File validation ───────────────────────────────────────────────────────
     const handleFile = (f: File) => {
+        onError("");
         if (!["image/jpeg", "image/png", "image/jpg"].includes(f.type)) {
-            alert("Only JPG or PNG files are allowed.");
+            onError("Only JPG or PNG files are allowed."); // ← use onError
             return;
         }
         if (f.size > 2 * 1024 * 1024) {
-            alert("File size must be under 2MB.");
+            onError("File size must be under 2MB."); // ← use onError
             return;
         }
         onPhotoChange(f);
@@ -159,11 +163,11 @@ function ProfilePhotoUpload({
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function BasicDetails({ onNext, defaultValues, lockedEmail, lockedName }: Props) {
-    const [photo, setPhoto] = useState<File | null>(null);
+    const [photo, setPhoto] = useState<File | null>(defaultValues?.profilePhoto ?? null)
     const [photoError, setPhotoError] = useState("");
 
     const { register, handleSubmit, formState: { errors }, } = useForm<FormData>({
-        
+
         defaultValues: {
             ...(defaultValues ?? {}),
             email: lockedEmail ?? defaultValues?.email ?? "",
@@ -205,6 +209,7 @@ export default function BasicDetails({ onNext, defaultValues, lockedEmail, locke
                     onPhotoChange={(f) => { setPhoto(f); if (f) setPhotoError(""); }}
                     error={photoError}
                     existingPhotoUrl={defaultValues?.photo_url}  // ← add
+                    onError={setPhotoError}
                 />
 
                 <div className="h-px bg-gray-100" />
@@ -243,27 +248,29 @@ export default function BasicDetails({ onNext, defaultValues, lockedEmail, locke
 
                 {/* Father's Name — optional */}
                 <div className="flex flex-col gap-1">
-                    <label className="text-sm text-gray-700">Father's Name</label>
+                    <label className="text-sm text-gray-700">Father's Name <span className="text-red-500">*</span></label>
                     <input
                         type="text"
-                        placeholder="eg. Ramesh Sharma"
+                        placeholder="eg. Ramesh"
                         {...register("fatherName")}
                         onKeyDown={allowOnlyLetters}
                         maxLength={60}
                         className={inputClass(false)}
+                        required
                     />
                 </div>
 
                 {/* Mother's Name — optional */}
                 <div className="flex flex-col gap-1">
-                    <label className="text-sm text-gray-700">Mother's Name</label>
+                    <label className="text-sm text-gray-700">Mother's Name <span className="text-red-500">*</span></label>
                     <input
                         type="text"
-                        placeholder="eg. Sunita Sharma"
+                        placeholder="eg. Sunita"
                         {...register("motherName")}
                         onKeyDown={allowOnlyLetters}
                         maxLength={60}
                         className={inputClass(false)}
+                        required
                     />
                 </div>
 

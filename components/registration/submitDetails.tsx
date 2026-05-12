@@ -150,7 +150,7 @@ function ReviewModal({
                         </ReviewSection>
                     )}
 
-                    {formData.certifications && formData.certifications.length > 0 && (
+                    {/* {formData.certifications && formData.certifications.length > 0 && (
                         <ReviewSection title="Certifications">
                             {formData.certifications.map((cert, i) => (
                                 <div key={i} className={i > 0 ? "pt-3 mt-3 border-t border-gray-200" : ""}>
@@ -165,7 +165,7 @@ function ReviewModal({
                                 </div>
                             ))}
                         </ReviewSection>
-                    )}
+                    )} */}
 
                     <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
                         <div className="w-5 h-5 rounded flex items-center justify-center bg-orange-500 flex-shrink-0 mt-0.5">
@@ -282,43 +282,60 @@ export default function DeclareAndSubmit({
             </p>
 
             {/* Quick summary strip */}
-            <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 mb-6 flex flex-col gap-2">
+            {/* Quick summary strip */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 mb-6 flex flex-col gap-3">
                 <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">
                     Application Summary
                 </p>
+
+                {/* Basic details grid */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                     {[
-                        { label: "Name", value: name },
+                        { label: "Name", value: formData.name },
                         { label: "Email", value: formData.email },
                         { label: "Phone", value: formData.phone },
                         { label: "Gender", value: formData.gender },
                         { label: "City", value: formData.permanentAddress?.city },
                         { label: "State", value: formData.permanentAddress?.state },
-                        {
-                            label: "Education",
-                            value: formData.education?.[0]?.degree
-                                ? `${formData.education[0].degree}${formData.education[0].school ? ` · ${formData.education[0].school}` : ""}`
-                                : undefined,
-                        },
-                        {
-                            label: "Experience",
-                            value: formData.experience?.[0]?.experienceType === "fresher"
-                                ? "Fresher"
-                                : formData.experience?.[0]?.title
-                                    ? `${formData.experience[0].title} @ ${formData.experience[0].company}`
-                                    : undefined,
-                        },
-                    ]
-                        .filter((r) => r.value)
-                        .map((r) => (
-                            <div key={r.label}>
-                                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                                    {r.label}
-                                </p>
-                                <p className="text-sm text-gray-800 font-medium truncate">{r.value as string}</p>
-                            </div>
-                        ))}
+                    ].filter((r) => r.value).map((r) => (
+                        <div key={r.label}>
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">{r.label}</p>
+                            <p className="text-sm text-gray-800 font-medium truncate">{r.value as string}</p>
+                        </div>
+                    ))}
                 </div>
+
+                {/* Education — all entries */}
+                {formData.education && formData.education.length > 0 && (
+                    <div className="pt-2 border-t border-gray-200">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Education</p>
+                        <div className="flex flex-col gap-1">
+                            {formData.education.map((edu, i) => (
+                                <p key={i} className="text-sm text-gray-800 font-medium">
+                                    {edu.degree}{edu.school ? ` · ${edu.school}` : ""}
+                                    {edu.yearOfPassing ? ` (${edu.yearOfPassing})` : ""}
+                                </p>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Experience — all entries */}
+                {formData.experience && formData.experience.length > 0 && (
+                    <div className="pt-2 border-t border-gray-200">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Experience</p>
+                        <div className="flex flex-col gap-1">
+                            {formData.experience.map((exp, i) => (
+                                <p key={i} className="text-sm text-gray-800 font-medium">
+                                    {exp.experienceType === "fresher"
+                                        ? "Fresher"
+                                        : `${exp.title ?? ""}${exp.company ? ` @ ${exp.company}` : ""}`
+                                    }
+                                </p>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Declaration checkbox block */}

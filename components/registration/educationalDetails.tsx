@@ -4,6 +4,10 @@ import { useState } from "react";
 import { allowOnlyLetters, allowDecimal, allowOnlyNumbers } from "@/lib/utils/keyboardHelpers";
 import { EducationBlock } from "@/lib/types/registration";
 import { userService } from "@/lib/services/user.services";
+import { useToast } from "../ui/toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { userKeys } from "@/lib/hooks/useUser";
+
 
 interface Props {
     onNext: (data?: any) => void;
@@ -51,7 +55,7 @@ const EducationCard = ({
     index: number;
     data: EducationBlock;
     onChange: (index: number, field: keyof EducationBlock, value: string) => void;
-    onDelete: (index: number) => void;
+    onDelete: (index: number) => Promise<void>;
     errors: Partial<Record<string, string>>;
     showDelete: boolean;
     onSave?: () => void;
@@ -117,11 +121,11 @@ const EducationCard = ({
                     {(data.degree === "10th" || !usedDegrees.includes("10th")) && <option value="10th">10th (SSC)</option>}
                     {(data.degree === "12th" || !usedDegrees.includes("12th")) && <option value="12th">12th (HSC)</option>}
                     {(data.degree === "diploma" || !usedDegrees.includes("diploma")) && <option value="diploma">Diploma</option>}
-                    {(data.degree === "bachelors" || !usedDegrees.includes("bachelors")) && <option value="bachelors">Bachelor's</option>}
-                    {(data.degree === "masters" || !usedDegrees.includes("masters")) && <option value="masters">Master's</option>}
+                    {(data.degree === "graduation" || !usedDegrees.includes("bachelors")) && <option value="bachelors">Bachelor's</option>}
+                    {(data.degree === "post_graduation" || !usedDegrees.includes("masters")) && <option value="masters">Master's</option>}
                     {(data.degree === "phd" || !usedDegrees.includes("phd")) && <option value="phd">PhD</option>}
-                    {(data.degree === "technical" || !usedDegrees.includes("technical")) && <option value="technical">Technical Diploma</option>}
-                    {(data.degree === "others" || !usedDegrees.includes("others")) && <option value="others">Others</option>}
+                    {/*{(data.degree === "technical" || !usedDegrees.includes("technical")) && <option value="technical">Technical Diploma</option>}
+                    {(data.degree === "others" || !usedDegrees.includes("others")) && <option value="others">Others</option>} */}
                 </select>
                 {errors[`${index}_degree`] && (
                     <p className="text-red-500 text-xs">{errors[`${index}_degree`]}</p>
@@ -312,23 +316,21 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [savedIndex, setSavedIndex] = useState<number | null>(null);
+    const { error: showError, success: showSuccess } = useToast();
+    const queryClient = useQueryClient();
 
-    // ── Compute used degrees excluding current card's own degree ──────────────
     const getUsedDegrees = (currentIndex: number) =>
         entries
             .filter((_, i) => i !== currentIndex)
             .map((e) => e.degree)
             .filter(Boolean);
 
-    // ── Shared validation logic used by both validate() and handleSaveCard() ──
     const validateEntry = (entry: EducationBlock, key: number, newErrors: Partial<Record<string, string>>) => {
-        // Duplicate degree check
         const allDegrees = entries.map((e) => e.degree).filter(Boolean);
         const duplicateDegrees = allDegrees.filter((d, idx) => allDegrees.indexOf(d) !== idx);
         if (entry.degree && duplicateDegrees.includes(entry.degree)) {
             newErrors[`${key}_degree`] = "This degree has already been added";
         }
-
         if (!entry.school.trim()) newErrors[`${key}_school`] = "School is required";
         if (!entry.degree.trim()) newErrors[`${key}_degree`] = "Degree is required";
         if (entry.degree === "others" && !(entry.otherDegree ?? "").trim()) {
@@ -337,28 +339,16 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
         if (entry.degree !== "10th" && !entry.fieldOfStudy.trim()) {
             newErrors[`${key}_fieldOfStudy`] = "Field of study is required";
         }
-
-        // Result — mandatory
-        if (!entry.resultType) {
-            newErrors[`${key}_resultType`] = "Result type is required";
-        }
-        if (entry.resultType && !(entry.gpa ?? "").trim()) {
-            newErrors[`${key}_gpa`] = "Please enter a value";
-        }
+        if (!entry.resultType) newErrors[`${key}_resultType`] = "Result type is required";
+        if (entry.resultType && !(entry.gpa ?? "").trim()) newErrors[`${key}_gpa`] = "Please enter a value";
         if (entry.resultType === "cgpa" && entry.gpa) {
             const val = parseFloat(entry.gpa);
-            if (isNaN(val) || val < 0 || val > 10.0) {
-                newErrors[`${key}_gpa`] = "CGPA must be between 0 and 10.0";
-            }
+            if (isNaN(val) || val < 0 || val > 10.0) newErrors[`${key}_gpa`] = "CGPA must be between 0 and 10.0";
         }
         if (entry.resultType === "percentage" && entry.gpa) {
             const val = parseFloat(entry.gpa);
-            if (isNaN(val) || val < 0 || val > 100) {
-                newErrors[`${key}_gpa`] = "Percentage must be between 0 and 100";
-            }
+            if (isNaN(val) || val < 0 || val > 100) newErrors[`${key}_gpa`] = "Percentage must be between 0 and 100";
         }
-
-        // Year of passing
         if (!entry.yearOfPassing) {
             newErrors[`${key}_yearOfPassing`] = "Year of passing is required";
         } else {
@@ -370,11 +360,10 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
                 newErrors[`${key}_yearOfPassing`] = `Year of passing cannot be greater than ${currentYear}`;
             }
         }
-
         if (!entry.mode) newErrors[`${key}_mode`] = "Mode is required";
     };
 
-    // ── Save card (edit mode) ─────────────────────────────────────────────────
+    // ── Save card ─────────────────────────────────────────────────────────────
     const handleSaveCard = async (index: number) => {
         const entry = entries[index];
         const newErrors: Partial<Record<string, string>> = {};
@@ -386,24 +375,30 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
             return;
         }
 
-        if (!entry.id) { alert("Cannot save — missing record ID."); return; }
-
         setSavingIndex(index);
         try {
-            await userService.saveEducation(entry.id, {
-                ...entry,
-                yearOfPassing: entry.yearOfPassing ? parseInt(entry.yearOfPassing) : "",
-            });
+            if (!entry.id) {
+                const newEntry = await userService.addEducation(entry);
+                setEntries((prev) => prev.map((e, i) =>
+                    i === index ? { ...e, id: newEntry.id } : e
+                ));
+            } else {
+                await userService.saveEducation(entry.id, {
+                    ...entry,
+                    yearOfPassing: entry.yearOfPassing ? parseInt(entry.yearOfPassing) : "",
+                });
+            }
+            queryClient.invalidateQueries({ queryKey: userKeys.profile });
             setSavedIndex(index);
             setTimeout(() => setSavedIndex(null), 2000);
         } catch {
-            alert("Failed to save. Please try again.");
+            showError("Failed to save. Please try again.");
         } finally {
             setSavingIndex(null);
         }
-    };
+    }; // ← handleSaveCard ends here
 
-    // ── Validate all entries ──────────────────────────────────────────────────
+    // ── Validate ──────────────────────────────────────────────────────────────
     const validate = () => {
         const newErrors: Partial<Record<string, string>> = {};
         entries.forEach((entry, i) => validateEntry(entry, i, newErrors));
@@ -421,7 +416,20 @@ export default function EducationalDetails({ onNext, onBack, defaultValues, isEd
         setEntries((prev) => [...prev, emptyEducation()]);
     };
 
-    const handleDelete = (index: number) => {
+    const handleDelete = async (index: number) => {
+        const entry = entries[index];
+
+        if (isEditMode && entry.id) {
+            try {
+                await userService.deleteEducation(entry.id);
+                queryClient.invalidateQueries({ queryKey: userKeys.profile });
+                showSuccess("Education deleted successfully.");
+            } catch {
+                showError("Failed to delete education. Please try again.");
+                return;
+            }
+        }
+
         setEntries((prev) => prev.filter((_, i) => i !== index));
         setErrors((prev) => {
             const e = { ...prev };

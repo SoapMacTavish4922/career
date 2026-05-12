@@ -72,7 +72,15 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // ← skip refresh for auth endpoints
+        const isAuthEndpoint = originalRequest.url?.includes("/login") ||
+            originalRequest.url?.includes("/refresh") ||
+            originalRequest.url?.includes("/signup") ||
+            originalRequest.url?.includes("/send-otp") ||
+            originalRequest.url?.includes("/verify-otp") ||
+            originalRequest.url?.includes("/reset-password");
+
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
 
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
@@ -88,7 +96,6 @@ api.interceptors.response.use(
             const refreshToken = tokenHelper.getRefresh();
 
             if (!refreshToken) {
-                // No refresh token — show overlay, don't redirect
                 tokenHelper.clearTokens();
                 triggerExpiry?.();
                 return Promise.reject(error);
@@ -108,10 +115,9 @@ api.interceptors.response.use(
                 return api(originalRequest);
 
             } catch (refreshError) {
-                // Refresh also failed — show overlay instead of redirecting
                 processQueue(refreshError);
                 tokenHelper.clearTokens();
-                triggerExpiry?.(); // ← show SessionExpiredOverlay, page stays intact
+                triggerExpiry?.();
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;

@@ -388,6 +388,7 @@ export default function MyProfilePage() {
             </div>
 
             {/* ── Profile Details Card ── */}
+            {/* ── Profile Details Card ── */}
             <div className="bg-white border border-gray-400 rounded-2xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-300 flex items-center justify-between">
                     <div>
@@ -416,21 +417,50 @@ export default function MyProfilePage() {
                     <InfoRow label="Father's Name" value={toCapitalize((profile as any)?.fatherName)} />
                     <InfoRow label="Mother's Name" value={toCapitalize((profile as any)?.motherName)} />
                     <InfoRow label="City" value={toCapitalize((profile as any)?.currentAddress?.city)} />
-                    <InfoRow label="Experience" value={
-                        toCapitalize((profile as any)?.experience?.[0]?.experienceType === "fresher"
-                            ? "Fresher"
-                            : (profile as any)?.experience?.[0]?.title)
-                    } />
-                    <InfoRow label="Education" value={
-                        (profile as any)?.education?.[0]?.degree
-                            ? `${toCapitalize((profile as any).education[0].degree)}${(profile as any).education[0].school ? ` · ${(profile as any).education[0].school}` : ""}`
-                            : undefined
-                    } />
+
+                    {/* ── Experience — all entries ── */}
+                    {/* ── Education (left) + Experience (right) ── */}
+                    <div className="col-span-2 grid grid-cols-2 gap-x-8">
+
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Education</span>
+                            <div className="flex flex-col gap-1 mt-0.5">
+                                {(profile as any)?.education?.length > 0
+                                    ? (profile as any).education.map((edu: any, i: number) => (
+                                        <span key={i} className="text-sm font-medium text-gray-800">
+                                            {toCapitalize(edu.degree ?? "")}
+                                            {edu.school ? ` · ${edu.school}` : ""}
+                                            {edu.yearOfPassing ? ` (${edu.yearOfPassing})` : ""}
+                                        </span>
+                                    ))
+                                    : <span className="text-sm text-gray-400">—</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Experience</span>
+                            <div className="flex flex-col gap-1 mt-0.5">
+                                {(profile as any)?.experience?.length > 0
+                                    ? (profile as any).experience.map((exp: any, i: number) => (
+                                        <span key={i} className="text-sm font-medium text-gray-800">
+                                            {exp.experienceType === "fresher"
+                                                ? "Fresher"
+                                                : `${toCapitalize(exp.title ?? "")}${exp.company ? ` @ ${exp.company}` : ""}`
+                                            }
+                                        </span>
+                                    ))
+                                    : <span className="text-sm text-gray-400">—</span>
+                                }
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
 
             {/* ── Security Card ── */}
-            <div className="bg-white border border-gray-400 rounded-2xl overflow-hidden">
+            {/* <div className="bg-white border border-gray-400 rounded-2xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-300">
                     <h3 className="text-sm font-bold text-gray-900">Security</h3>
                     <p className="text-xs text-gray-400 mt-0.5">Manage your account security</p>
@@ -453,7 +483,7 @@ export default function MyProfilePage() {
                         Change Password
                     </button>
                 </div>
-            </div>
+            </div> */}
 
             {/* ── Modals ── */}
             {activeModal === "photo" && (
