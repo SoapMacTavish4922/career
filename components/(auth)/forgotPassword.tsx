@@ -11,7 +11,6 @@ import SubmitButton from "@/components/ui/SubmitButton";
 import PasswordStrength from "@/components/ui/PasswordStrength";
 import OtpInput from "@/components/ui/OtpInput";
 import StepIndicator from "@/components/ui/StepIndicator";
-import { log } from "console";
 
 
 const stepIndex: Record<AuthStep, number> = { email: 0, otp: 1, password: 2, success: 3 };

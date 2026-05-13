@@ -78,7 +78,7 @@ export const userService = {
         const res = await api.post(ENDPOINTS.user.photo, formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
-        console.log("updatePhoto response:", res.data);
+
         return res.data;
     },
 
@@ -123,6 +123,8 @@ export const userService = {
             formData.append("permanent_address[state]", data.permanentAddress?.state ?? "");
             formData.append("permanent_address[country]", data.permanentAddress?.country ?? "");
             formData.append("permanent_address[pincode]", data.permanentAddress?.pinCode ?? "");
+            //formData.append("notifications", data.notifications ? "1" : "0");
+            //formData.append("terms", data.terms ? "1" : "0");
 
             // ── Resume ────────────────────────────────────────────────────────
             if (data.resume instanceof File) {
@@ -139,10 +141,10 @@ export const userService = {
             await api.post(ENDPOINTS.registration.basicDetails, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
-            console.log("Basic details + Resume saved");
+
 
         } catch (error: any) {
-            console.log("Basic details failed:", error?.response?.data);
+
             throw new Error("Failed to save basic details. Please try again.");
         }
 
@@ -160,10 +162,8 @@ export const userService = {
                     mode: edu.mode,
                 })),
             });
-            console.log(" Education saved");
 
         } catch (error: any) {
-            console.log(" Education failed:", error?.response?.data);
             throw new Error("Failed to save education details. Please try again.");
         }
 
@@ -195,10 +195,10 @@ export const userService = {
                     };
                 }),
             });
-            console.log("Experience saved");
+
 
         } catch (error: any) {
-            console.log("Experience failed:", error?.response?.data);
+
             throw new Error("Failed to save experience details. Please try again.");
         }
 
